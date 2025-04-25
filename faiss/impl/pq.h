@@ -6,7 +6,7 @@
 #include <string>
 
 #include "faiss/Index.h"
-
+#include "faiss/impl/FaissAssert.h"
 namespace faiss {
 
 class PQPrunerDataLoader {
@@ -70,37 +70,23 @@ bool load_simple_bin(
         T*& data,
         size_t& n_rows,
         size_t& n_cols) {
-    data = nullptr;
     n_rows = 0;
     n_cols = 0;
     std::ifstream reader(filename, std::ios::binary);
-    if (!reader) {
-        std::cerr << "Error: Cannot open simple binary file: " << filename
-                  << std::endl;
-        return false;
-    }
+
     uint32_t r, c;
     reader.read(reinterpret_cast<char*>(&r), sizeof(uint32_t));
     reader.read(reinterpret_cast<char*>(&c), sizeof(uint32_t));
-    if (!reader) { /* ... */
-        return false;
-    }
+    FAISS_ASSERT(reader);
+
     n_rows = r;
     n_cols = c;
+
     size_t num_elements = n_rows * n_cols;
-    if (num_elements == 0)
-        return true;
-    try {
-        data = new T[num_elements];
-    } catch (const std::bad_alloc& e) { /* ... */
-        return false;
-    }
+    FAISS_ASSERT(num_elements > 0);
+    data = new T[num_elements];
     reader.read(reinterpret_cast<char*>(data), num_elements * sizeof(T));
-    if (!reader) { /* ... */
-        delete[] data;
-        data = nullptr;
-        return false;
-    }
+    FAISS_ASSERT(reader);
     return true;
 }
 

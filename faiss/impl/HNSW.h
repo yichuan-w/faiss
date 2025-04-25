@@ -15,10 +15,12 @@
 
 #include <faiss/Index.h>
 #include <faiss/impl/FaissAssert.h>
+#include <faiss/impl/io.h>
 #include <faiss/impl/maybe_owned_vector.h>
 #include <faiss/impl/platform_macros.h>
 #include <faiss/utils/Heap.h>
 #include <faiss/utils/random.h>
+#include <unistd.h>
 
 #include "pq.h"
 
@@ -257,19 +259,47 @@ struct HNSW {
     void load_pq_pruning_data(
             const std::string& pq_pivots_path,
             const std::string& pq_compressed_path);
+
+    // --- ADD File Descriptor and Offset for On-Demand Reading ---
+    std::string hnsw_index_filename; // Store the filename for reopening
+    int graph_fd = -1;               // File descriptor for pread
+    uint64_t neighbors_start_offset =
+            0; // Byte offset where neighbor data starts
+
+    // On-demand neighbor fetch method
+    ssize_t fetch_neighbors_on_demand(
+            idx_t node_id,
+            int level,
+            std::vector<storage_idx_t>& buffer // Output/temporary buffer
+    ) const;
+
+    void initialize_on_demand_resources(
+            const std::string& index_filename,
+            const std::string& pq_pivots_path,
+            const std::string& pq_compressed_path);
+
+    ~HNSW(); // Close file descriptor
 };
 
 struct HNSWStats {
     size_t n1 = 0; /// number of vectors searched
     size_t n2 =
             0; /// number of queries for which the candidate list is exhausted
-    size_t ndis = 0;  /// number of distances computed
-    size_t nhops = 0; /// number of hops aka number of edges traversed
+    size_t ndis = 0;   /// number of distances computed
+    size_t nhops = 0;  /// number of hops aka number of edges traversed
+    size_t npq = 0;    /// number of PQ candidates
+    size_t nfetch = 0; /// number of neighbors fetched
+    size_t n_ios = 0;  /// number of neighbors fetched on demand
+    size_t n_pq_calcs = 0;
 
     void reset() {
         n1 = n2 = 0;
         ndis = 0;
         nhops = 0;
+        npq = 0;
+        nfetch = 0;
+        n_ios = 0;
+        n_pq_calcs = 0;
     }
 
     void combine(const HNSWStats& other) {
@@ -277,6 +307,10 @@ struct HNSWStats {
         n2 += other.n2;
         ndis += other.ndis;
         nhops += other.nhops;
+        npq += other.npq;
+        nfetch += other.nfetch;
+        n_ios += other.n_ios;
+        n_pq_calcs += other.n_pq_calcs;
     }
 };
 

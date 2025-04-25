@@ -268,6 +268,17 @@ struct ZmqDistanceComputer : DistanceComputer {
     mutable size_t fetch_count = 0;
     // ---- End Additions ----
 
+    ZmqDistanceComputer(size_t dim, MetricType mt, float marg = 0)
+            : d(dim), metric_type(mt), metric_arg(marg) {
+        FAISS_THROW_IF_NOT_MSG(d > 0, "Dimension must be positive");
+        query.resize(d);
+        last_fetched_zmq_vector.resize(d); // Preallocate
+        reset_fetch_count();               // Initialize count
+        printf("ZmqDistanceComputer initialized: d=%zu, metric=%d\n",
+               d,
+               (int)mt);
+    }
+
     ZmqDistanceComputer(const Index* storage_ref)
             : d(storage_ref->d),
               metric_type(storage_ref->metric_type),
@@ -624,8 +635,8 @@ struct ZmqDistanceComputer : DistanceComputer {
         reset_fetch_count();
         // ---- End Addition ----
         memcpy(query.data(), x, d * sizeof(float));
-        storage_dc_orig->set_query(x);
-        storage_dc_search->set_query(x); /* No cache to clear */
+        // storage_dc_orig->set_query(x);
+        // storage_dc_search->set_query(x); /* No cache to clear */
     }
     ~ZmqDistanceComputer() override = default;
 };
@@ -840,10 +851,10 @@ void hnsw_search(
         const float* x,
         BlockResultHandler& bres,
         const SearchParameters* params) {
-    FAISS_THROW_IF_NOT_MSG(
-            index->storage,
-            "No storage index, please use IndexHNSWFlat (or variants) "
-            "instead of IndexHNSW directly");
+    // FAISS_THROW_IF_NOT_MSG(
+    //         index->storage,
+    //         "No storage index, please use IndexHNSWFlat (or variants) "
+    //         "instead of IndexHNSW directly");
     const HNSW& hnsw = index->hnsw;
 
     // ---- Addition: Reset total fetch count at the beginning of search ----
@@ -1260,7 +1271,8 @@ void IndexHNSW::permute_entries(const idx_t* perm) {
 }
 
 DistanceComputer* IndexHNSW::get_distance_computer() const {
-    return new ZmqDistanceComputer(storage);
+    return new ZmqDistanceComputer(
+            this->d, this->metric_type, this->metric_arg);
     // return storage->get_distance_computer();
 }
 

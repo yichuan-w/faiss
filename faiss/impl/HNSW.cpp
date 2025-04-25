@@ -18,6 +18,18 @@
 
 #include <faiss/impl/platform_macros.h>
 
+#include <fcntl.h>
+#include <sys/stat.h> // For file size check
+#include <unistd.h>
+#include <cerrno>
+#include <cinttypes>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <set>
+#include "faiss/impl/FaissAssert.h"
+#include "faiss/impl/io.h"
+#include "faiss/impl/io_macros.h"
 #include "faiss/impl/pq.h"
 
 #ifdef __AVX2__
@@ -28,6 +40,126 @@
 #endif
 
 namespace faiss {
+HNSW::~HNSW() {
+    if (graph_fd != -1) {
+        close(graph_fd);
+    }
+}
+
+void HNSW::initialize_on_demand_resources(
+        const std::string& index_filename,
+        const std::string& pq_pivots_path,
+        const std::string& pq_compressed_path) {
+    printf("[InitOnDemand] Initializing on-demand resources...\n");
+    this->hnsw_index_filename = index_filename;
+
+    if (this->graph_fd != -1) {
+        close(this->graph_fd);
+    }
+    this->graph_fd =
+            open(this->hnsw_index_filename.c_str(), O_RDONLY | O_CLOEXEC);
+    if (this->graph_fd == -1) {
+        int RTERRNO = errno;
+        FAISS_THROW_FMT(
+                "Failed to open HNSW index file '%s' for pread during initialization. errno=%d (%s)",
+                this->hnsw_index_filename.c_str(),
+                RTERRNO,
+                strerror(RTERRNO));
+    }
+    printf("[InitOnDemand] Opened HNSW index file descriptor: %d\n",
+           this->graph_fd);
+
+    this->load_pq_pruning_data(pq_pivots_path, pq_compressed_path);
+
+    if (this->use_pq_pruning) {
+        FAISS_THROW_IF_NOT_FMT(
+                this->n_total_vectors == this->levels.size(),
+                "PQ code vector count (%zu) does not match HNSW levels size (%zu) after initialization",
+                this->n_total_vectors,
+                this->levels.size());
+        printf("[InitOnDemand] PQ data loaded/verified.\n");
+    } else {
+        printf("[InitOnDemand] PQ pruning is not enabled.\n");
+    }
+    printf("[InitOnDemand] On-demand resources initialized.\n");
+}
+
+ssize_t HNSW::fetch_neighbors_on_demand(
+        idx_t node_id,
+        int level,
+        std::vector<storage_idx_t>& buffer) const {
+    FAISS_THROW_IF_NOT_MSG(
+            graph_fd != -1,
+            "Graph file descriptor is not valid (file not opened?).");
+    FAISS_THROW_IF_NOT_FMT(
+            node_id >= 0 && (size_t)node_id < levels.size(),
+            "fetch_neighbors: node_id %ld out of range [0, %zu)",
+            (long)node_id,
+            levels.size());
+    FAISS_THROW_IF_NOT_FMT(
+            level >= 0 && level <= max_level,
+            "fetch_neighbors: level %d out of range [0, %d]",
+            level,
+            max_level);
+
+    size_t begin_idx, end_idx;
+    neighbor_range(node_id, level, &begin_idx, &end_idx);
+
+    size_t num_neighbors = end_idx - begin_idx;
+    if (num_neighbors == 0) {
+        buffer.clear();
+        return 0;
+    }
+
+    off_t disk_offset =
+            (off_t)(neighbors_start_offset +          // 起始字节偏移
+                    begin_idx * sizeof(storage_idx_t) // 元素索引转换为字节偏移
+            );
+    size_t bytes_to_read = num_neighbors * sizeof(storage_idx_t);
+
+    buffer.resize(num_neighbors);
+
+    ssize_t bytes_read =
+            pread(graph_fd, buffer.data(), bytes_to_read, disk_offset);
+
+    int RTERRNO = errno;
+    FAISS_ASSERT_FMT(
+            bytes_read >= 0,
+            "pread failed for node %ld, level %d at offset %ld. errno=%d (%s)",
+            (long)node_id,
+            level,
+            (long)disk_offset,
+            RTERRNO,
+            strerror(RTERRNO));
+
+    FAISS_ASSERT_FMT(
+            (size_t)bytes_read == bytes_to_read,
+            "Short read for node %ld, level %d at offset %ld. Read %zd bytes, expected %zu",
+            (long)node_id,
+            level,
+            (long)disk_offset,
+            bytes_read,
+            bytes_to_read);
+    // printf("DEBUG C++: Node %ld, Level %d\n", (long)node_id, level);
+    // printf("DEBUG C++:   disk_offset= %lld, bytes_to_read= %zu\n",
+    //        (long long)disk_offset,
+    //        bytes_to_read);
+    // printf("DEBUG C++:   bytes_read = %zd\n", bytes_read);
+    // printf("DEBUG C++:   Raw bytes read:");
+    // const unsigned char* raw_buf =
+    //         reinterpret_cast<const unsigned char*>(buffer.data());
+    // for (ssize_t k = 0; k < bytes_read; ++k) {
+    //     printf(" %02x", raw_buf[k]); // 以十六进制打印原始字节
+    // }
+    // printf("\n");
+    // printf("DEBUG C++:   Interpreted values (buffer access): [");
+    // for (size_t i = 0; i < buffer.size(); ++i) {
+    //     printf("%d%s", buffer[i], (i == buffer.size() - 1) ? "" : ", ");
+    // }
+    // printf("]\n");
+
+    return num_neighbors;
+}
 
 void HNSW::load_pq_pruning_data(
         const std::string& pq_pivots_path,
@@ -75,7 +207,6 @@ void HNSW::load_pq_pruning_data(
     std::cout << "Successfully loaded data for PQ pruning: " << num_vectors
               << " vectors, " << code_size << " bytes/vector." << std::endl;
 }
-
 /**************************************************************
  * HNSW structure implementation
  **************************************************************/
@@ -778,6 +909,7 @@ inline HNSW::storage_idx_t get_neighbor_id_internal(
             : hnsw.neighbors[index_in_neighbor_array];
 }
 
+// Candidates: Main Candidate Heap, stored the accurate distance
 using MinimaxHeap = HNSW::MinimaxHeap;
 using Node = HNSW::Node;
 using C = HNSW::C;
@@ -793,8 +925,14 @@ int search_from_candidates(
         int nres_in,
         const SearchParameters* params,
         const IndexHNSW* hnsw_index) {
+    FAISS_THROW_IF_NOT(level == 0);
+    FAISS_THROW_IF_NOT(hnsw.graph_fd != -1);
+
     int nres = nres_in;
     int ndis = 0;
+    int nfetch = 0;
+    int npq = 0;
+
     const int beam_width = 2;
     int neighbor_threshold = 60;
 
@@ -812,6 +950,9 @@ int search_from_candidates(
     std::vector<float> pq_dists_out;
     float pq_select_ratio =
             0.5; // Default ratio of candidates to select from PQ queue
+
+    std::vector<HNSW::storage_idx_t> neighbor_read_buffer; // For pread
+    size_t max_deg_l0 = hnsw.nb_neighbors(0);
 
     if (params) {
         if (const SearchParametersHNSW* hnsw_params =
@@ -835,6 +976,8 @@ int search_from_candidates(
         size_t n_chunks = hnsw.pq_data_loader->get_num_chunks();
         const float* original_query = qdis.get_query();
         if (!original_query) {
+            fprintf(stderr,
+                    "Warning: Cannot get original query for PQ. Disabling PQ pruning for this search.\n");
             perform_pq_pruning = false;
         } else {
             query_preprocessed.resize(dim);
@@ -846,8 +989,12 @@ int search_from_candidates(
             pq_dists_lookup.resize(256 * n_chunks);
             hnsw.pq_data_loader->populate_chunk_distances(
                     query_preprocessed.data(), pq_dists_lookup.data());
+
+            pq_code_scratch.resize(max_deg_l0 * hnsw.code_size);
+            pq_dists_out.resize(max_deg_l0);
         }
     }
+    neighbor_read_buffer.resize(max_deg_l0);
 
     // Global PQ candidate queue (min-heap)
     using PQCandidate = std::pair<float, idx_t>; // (pq_distance, node_id)
@@ -884,16 +1031,15 @@ int search_from_candidates(
                     hnsw.code_size,
                     pq_code_scratch.data());
 
-            if (aggregated_count == 1) {
-                pq_distance_lookup(
-                        pq_code_scratch.data(),
-                        1,
-                        hnsw.pq_data_loader->get_num_chunks(),
-                        pq_dists_lookup.data(),
-                        pq_dists_out.data());
-
-                pq_candidate_queue.push({pq_dists_out[0], v1});
-            }
+            FAISS_ASSERT(aggregated_count == 1);
+            pq_distance_lookup(
+                    pq_code_scratch.data(),
+                    1,
+                    hnsw.pq_data_loader->get_num_chunks(),
+                    pq_dists_lookup.data(),
+                    pq_dists_out.data());
+            npq++;
+            pq_candidate_queue.push({pq_dists_out[0], v1});
         }
     }
 
@@ -905,8 +1051,10 @@ int search_from_candidates(
         std::vector<int> beam_nodes;
         std::vector<float> beam_distances;
         std::vector<int> neighbor_counts;
+        std::map<idx_t, std::vector<idx_t>> beam_fetched_neighbors;
         int total_neighbors = 0;
 
+        // 1. Get all beam nodes
         if (neighbor_threshold > 0) {
             while (candidates.size() > 0 &&
                    (beam_nodes.empty() ||
@@ -916,34 +1064,66 @@ int search_from_candidates(
                 if (v0 < 0)
                     continue;
 
-                size_t begin, end;
-                hnsw.neighbor_range(v0, level, &begin, &end);
+                // size_t begin, end;
+                // hnsw.neighbor_range(v0, level, &begin, &end);
 
-                int node_neighbor_count = 0;
-                if (!hnsw.storage_is_compact) {
-                    for (size_t j = begin; j < end; j++) {
-                        if (hnsw.neighbors[j] < 0)
-                            break;
-                        node_neighbor_count++;
-                    }
-                } else {
-                    node_neighbor_count = end - begin;
+                // int node_neighbor_count = 0;
+                // if (!hnsw.storage_is_compact) {
+                //     for (size_t j = begin; j < end; j++) {
+                //         if (hnsw.neighbors[j] < 0)
+                //             break;
+                //         node_neighbor_count++;
+                //     }
+                // } else {
+                //     node_neighbor_count = end - begin;
+                // }
+
+                std::vector<idx_t> current_node_neighbors;
+                ssize_t node_neighbor_count = hnsw.fetch_neighbors_on_demand(
+                        v0, 0, neighbor_read_buffer);
+                nfetch++;
+
+                FAISS_ASSERT(node_neighbor_count >= 0);
+                current_node_neighbors.resize(node_neighbor_count);
+                for (ssize_t i = 0; i < node_neighbor_count; ++i) {
+                    current_node_neighbors[i] =
+                            static_cast<idx_t>(neighbor_read_buffer[i]);
                 }
 
                 beam_nodes.push_back(v0);
                 beam_distances.push_back(d0);
                 neighbor_counts.push_back(node_neighbor_count);
-
+                beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
                 total_neighbors += node_neighbor_count;
             }
         } else {
             for (int b = 0; b < beam_width && candidates.size() > 0; b++) {
                 float d0 = 0;
                 int v0 = candidates.pop_min(&d0);
-                if (v0 >= 0) {
+                FAISS_ASSERT(v0 >= 0);
+
+                std::vector<idx_t> current_node_neighbors;
+                ssize_t neighbors_read_count = hnsw.fetch_neighbors_on_demand(
+                        v0, 0, neighbor_read_buffer);
+                nfetch++;
+                if (neighbors_read_count >= 0) {
+                    current_node_neighbors.resize(neighbors_read_count);
+                    for (ssize_t i = 0; i < neighbors_read_count; ++i) {
+                        current_node_neighbors[i] =
+                                static_cast<idx_t>(neighbor_read_buffer[i]);
+                    }
                     beam_nodes.push_back(v0);
                     beam_distances.push_back(d0);
+                    beam_fetched_neighbors[v0] =
+                            std::move(current_node_neighbors);
+                } else {
+                    fprintf(stderr,
+                            "Search Warning: Fetch failed for candidate %ld in fixed beam.\n",
+                            (long)v0);
                 }
+
+                // beam_nodes.push_back(v0);
+                // beam_distances.push_back(d0);
             }
         }
 
@@ -962,116 +1142,114 @@ int search_from_candidates(
 
         threshold = res.threshold;
         std::vector<idx_t> all_ids_to_process;
-        std::vector<idx_t> all_new_neighbors;
+        std::set<idx_t> all_new_neighbors;
 
-        // Process neighbors of all nodes in the beam
+        // 2. Process neighbors of all nodes in the beam
         for (size_t b = 0; b < beam_nodes.size(); b++) {
             int v0 = beam_nodes[b];
 
-            size_t begin, end;
-            hnsw.neighbor_range(v0, level, &begin, &end);
+            // size_t begin, end;
+            // hnsw.neighbor_range(v0, level, &begin, &end);
 
-            // Scan all neighbors and prepare them for processing
-            size_t jmax = begin;
-            for (size_t j = begin; j < end; j++) {
-                int v1 = hnsw.storage_is_compact
-                        ? hnsw.compact_neighbors_data[j]
-                        : hnsw.neighbors[j];
-                if (!hnsw.storage_is_compact && v1 < 0)
-                    break;
+            // // Scan all neighbors and prepare them for processing
+            // size_t jmax = begin;
+            // for (size_t j = begin; j < end; j++) {
+            //     int v1 = hnsw.storage_is_compact
+            //             ? hnsw.compact_neighbors_data[j]
+            //             : hnsw.neighbors[j];
+            //     if (!hnsw.storage_is_compact && v1 < 0)
+            //         break;
 
-                if (v1 >= 0) {
-                    prefetch_L2(vt.visited.data() + v1);
-                }
-                jmax += 1;
-            }
+            //     if (v1 >= 0) {
+            //         prefetch_L2(vt.visited.data() + v1);
+            //     }
+            //     jmax += 1;
+            // }
 
-            neighbors_count += jmax - begin;
+            // neighbors_count += jmax - begin;
 
-            // Collect unvisited neighbors
-            for (size_t j = begin; j < jmax; j++) {
-                int v1 = hnsw.storage_is_compact
-                        ? hnsw.compact_neighbors_data[j]
-                        : hnsw.neighbors[j];
+            // // Collect unvisited neighbors
+            // for (size_t j = begin; j < jmax; j++) {
+            //     int v1 = hnsw.storage_is_compact
+            //             ? hnsw.compact_neighbors_data[j]
+            //             : hnsw.neighbors[j];
 
-                bool vget = vt.get(v1);
-                if (!vget) {
-                    // Don't set visited yet for PQ pruning
-                    all_new_neighbors.push_back(v1);
+            //     bool vget = vt.get(v1);
+            //     if (!vget) {
+            //         // Don't set visited yet for PQ pruning
+            //         all_new_neighbors.push_back(v1);
+            //     }
+            // }
+
+            const auto& neighbors_of_v0 = beam_fetched_neighbors[v0];
+            for (idx_t v1 : neighbors_of_v0) {
+                assert(v1 >= 0);
+                if (!vt.get(v1)) {
+                    all_new_neighbors.insert(v1);
                 }
             }
         }
 
+        std::vector<idx_t> unique_new_neighbors(
+                all_new_neighbors.begin(), all_new_neighbors.end());
+
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
-        if (perform_pq_pruning && !all_new_neighbors.empty()) {
-            size_t n_new = all_new_neighbors.size();
-            if (pq_code_scratch.size() < n_new * hnsw.code_size) {
-                pq_code_scratch.resize(n_new * hnsw.code_size);
-            }
-            if (pq_dists_out.size() < n_new) {
-                pq_dists_out.resize(n_new);
-            }
+        if (perform_pq_pruning) {
+            size_t n_new = unique_new_neighbors.size();
+            pq_code_scratch.resize(n_new * hnsw.code_size);
+            pq_dists_out.resize(n_new);
 
             size_t aggregated_count = aggregate_pq_codes(
-                    all_new_neighbors.data(),
+                    unique_new_neighbors.data(),
                     n_new,
                     hnsw.pq_codes.data(),
                     hnsw.n_total_vectors,
                     hnsw.code_size,
                     pq_code_scratch.data());
 
-            if (aggregated_count > 0) {
-                pq_distance_lookup(
-                        pq_code_scratch.data(),
-                        aggregated_count,
-                        hnsw.pq_data_loader->get_num_chunks(),
-                        pq_dists_lookup.data(),
-                        pq_dists_out.data());
+            FAISS_ASSERT(aggregated_count == unique_new_neighbors.size());
+            pq_distance_lookup(
+                    pq_code_scratch.data(),
+                    aggregated_count,
+                    hnsw.pq_data_loader->get_num_chunks(),
+                    pq_dists_lookup.data(),
+                    pq_dists_out.data());
+            npq += aggregated_count;
 
-                // Add to global PQ queue
-                for (size_t i = 0; i < aggregated_count; i++) {
-                    pq_candidate_queue.push(
-                            {pq_dists_out[i], all_new_neighbors[i]});
-                }
+            for (size_t i = 0; i < aggregated_count; i++) {
+                pq_candidate_queue.push(
+                        {pq_dists_out[i], unique_new_neighbors[i]});
             }
 
-            // Select top candidates from PQ queue for exact distance
+            // 4. Select top candidates from PQ queue for exact distance
             // calculation
             int num_to_select = std::max(1, int(n_new * pq_select_ratio));
             num_to_select =
                     std::min(num_to_select, int(pq_candidate_queue.size()));
-
-            // Temporary storage for popped PQ candidates
+            int selected_count = 0;
             std::vector<PQCandidate> popped_pq_nodes;
 
-            // Select nodes for exact calculation from PQ queue
-            for (int i = 0; i < num_to_select && !pq_candidate_queue.empty();
-                 i++) {
+            while (!pq_candidate_queue.empty() &&
+                   selected_count < num_to_select) {
                 PQCandidate top_pq = pq_candidate_queue.top();
                 pq_candidate_queue.pop();
                 popped_pq_nodes.push_back(top_pq);
 
                 if (!vt.get(top_pq.second)) {
                     all_ids_to_process.push_back(top_pq.second);
-                    vt.set(top_pq.second); // Mark as visited
+                    vt.set(top_pq.second);
+                    selected_count++;
                 }
             }
 
-            // Push back unselected nodes
+            // Push back all popped nodes
             for (const auto& pq_node : popped_pq_nodes) {
-                // If not selected for exact calculation, keep in queue
-                if (vt.get(pq_node.second) &&
-                    std::find(
-                            all_ids_to_process.begin(),
-                            all_ids_to_process.end(),
-                            pq_node.second) == all_ids_to_process.end()) {
-                    pq_candidate_queue.push(pq_node);
-                }
+                pq_candidate_queue.push(pq_node);
             }
         } else {
             // If not using PQ pruning, process all new neighbors normally
-            for (idx_t v1 : all_new_neighbors) {
+            for (idx_t v1 : unique_new_neighbors) {
                 vt.set(v1);
                 all_ids_to_process.push_back(v1);
             }
@@ -1101,7 +1279,7 @@ int search_from_candidates(
             ndis += all_ids_to_process.size();
         }
 
-        nstep++;
+        nstep += beam_nodes.size();
         if (!do_dis_check && nstep > efSearch) {
             break;
         }
@@ -1114,6 +1292,8 @@ int search_from_candidates(
         }
         stats.ndis += ndis;
         stats.nhops += nstep;
+        stats.n_ios = nfetch;
+        stats.n_pq_calcs = npq;
     }
 
     // printf("neighbors count %d\n", neighbors_count);
@@ -1234,74 +1414,108 @@ HNSWStats greedy_update_nearest(
     // printf("greedy_update_nearest level: %d\n", level);
     int level_neighbors = 0;
 
+    size_t max_degree_at_level = hnsw.nb_neighbors(level);
+    std::vector<HNSW::storage_idx_t> neighbor_read_buffer(max_degree_at_level);
     for (;;) {
         storage_idx_t prev_nearest = nearest;
 
-        size_t begin, end;
-        hnsw.neighbor_range(nearest, level, &begin, &end);
+        // size_t begin, end;
+        // hnsw.neighbor_range(nearest, level, &begin, &end);
 
         size_t ndis = 0;
+        ssize_t neighbors_read_count =
+                hnsw.fetch_neighbors_on_demand( // 使用 CSR 版本
+                        nearest,
+                        level,
+                        neighbor_read_buffer);
+        stats.n_ios++;
 
-        // a faster version: reference version in unit test test_hnsw.cpp
-        // the following version processes 4 neighbors at a time
-        auto update_with_candidate = [&](const storage_idx_t idx,
-                                         const float dis) {
-            if (dis < d_nearest) {
-                nearest = idx;
-                d_nearest = dis;
-            }
-        };
+        std::vector<idx_t> neighbors_to_process(neighbors_read_count);
+        size_t valid_neighbor_count = 0;
+        for (ssize_t i = 0; i < neighbors_read_count; ++i) {
+            storage_idx_t v_storage = neighbor_read_buffer[i];
+            assert(v_storage >= 0 && v_storage < hnsw.n_total_vectors);
+            neighbors_to_process[valid_neighbor_count++] =
+                    static_cast<idx_t>(v_storage);
+        }
+        neighbors_to_process.resize(valid_neighbor_count);
 
-        int n_buffered = 0;
-        storage_idx_t buffered_ids[4];
+        std::vector<float> batch_distances(valid_neighbor_count);
+        qdis.distances_batch(neighbors_to_process, batch_distances);
+        stats.ndis += valid_neighbor_count;
 
-        for (size_t j = begin; j < end; j++) {
-            // *** CSR Change: Conditional neighbor access ***
-            HNSW::storage_idx_t v = hnsw.storage_is_compact
-                    ? hnsw.compact_neighbors_data[j]
-                    : hnsw.neighbors[j]; // 保持类型 HNSW::storage_idx_t
-            // *** CSR Change: Conditional break for original format ***
-            if (v < 0) {
-                // printf("neighbor: %ld\n", j - begin);
-                level_neighbors += j - begin;
-                // printf("qdis fetch count: %ld\n", qdis.get_fetch_count());
-                break;
-            }
+        for (size_t i = 0; i < valid_neighbor_count; ++i) {
+            idx_t neighbor_id = neighbors_to_process[i];
+            float neighbor_dist = batch_distances[i];
 
-            ndis += 1;
-
-            buffered_ids[n_buffered] = v;
-            n_buffered += 1;
-
-            if (n_buffered == 4) {
-                float dis[4];
-                qdis.distances_batch_4(
-                        buffered_ids[0],
-                        buffered_ids[1],
-                        buffered_ids[2],
-                        buffered_ids[3],
-                        dis[0],
-                        dis[1],
-                        dis[2],
-                        dis[3]);
-
-                for (size_t id4 = 0; id4 < 4; id4++) {
-                    update_with_candidate(buffered_ids[id4], dis[id4]);
-                }
-
-                n_buffered = 0;
+            if (neighbor_dist < d_nearest) {
+                d_nearest = neighbor_dist;
+                nearest = static_cast<storage_idx_t>(neighbor_id);
             }
         }
 
-        // process leftovers
-        for (size_t icnt = 0; icnt < n_buffered; icnt++) {
-            float dis = qdis(buffered_ids[icnt]);
-            update_with_candidate(buffered_ids[icnt], dis);
-        }
+        stats.nhops++;
 
-        // update stats
-        stats.ndis += ndis;
-        stats.nhops += 1;
+        // // a faster version: reference version in unit test test_hnsw.cpp
+        // // the following version processes 4 neighbors at a time
+        // auto update_with_candidate = [&](const storage_idx_t idx,
+        //                                  const float dis) {
+        //     if (dis < d_nearest) {
+        //         nearest = idx;
+        //         d_nearest = dis;
+        //     }
+        // };
+
+        // int n_buffered = 0;
+        // storage_idx_t buffered_ids[4];
+
+        // for (size_t j = begin; j < end; j++) {
+        //     // *** CSR Change: Conditional neighbor access ***
+        //     HNSW::storage_idx_t v = hnsw.storage_is_compact
+        //             ? hnsw.compact_neighbors_data[j]
+        //             : hnsw.neighbors[j]; // 保持类型 HNSW::storage_idx_t
+        //     // *** CSR Change: Conditional break for original format ***
+        //     if (v < 0) {
+        //         // printf("neighbor: %ld\n", j - begin);
+        //         level_neighbors += j - begin;
+        //         // printf("qdis fetch count: %ld\n", qdis.get_fetch_count());
+        //         break;
+        //     }
+
+        //     ndis += 1;
+
+        //     buffered_ids[n_buffered] = v;
+        //     n_buffered += 1;
+
+        //     if (n_buffered == 4) {
+        //         float dis[4];
+        //         qdis.distances_batch_4(
+        //                 buffered_ids[0],
+        //                 buffered_ids[1],
+        //                 buffered_ids[2],
+        //                 buffered_ids[3],
+        //                 dis[0],
+        //                 dis[1],
+        //                 dis[2],
+        //                 dis[3]);
+
+        //         for (size_t id4 = 0; id4 < 4; id4++) {
+        //             update_with_candidate(buffered_ids[id4], dis[id4]);
+        //         }
+
+        //         n_buffered = 0;
+        //     }
+        // }
+
+        // // process leftovers
+        // for (size_t icnt = 0; icnt < n_buffered; icnt++) {
+        //     float dis = qdis(buffered_ids[icnt]);
+        //     update_with_candidate(buffered_ids[icnt], dis);
+        // }
+
+        // // update stats
+        // stats.ndis += ndis;
+        // stats.nhops += 1;
 
         if (nearest == prev_nearest) {
             // printf("level %d, level_neighbors: %d, zmq fetch count: %ld\n",

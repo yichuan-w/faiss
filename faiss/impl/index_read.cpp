@@ -61,7 +61,7 @@
 
 #include <faiss/impl/mapped_io.h>
 #include <faiss/impl/zerocopy_io.h>
-
+#include <cinttypes>
 namespace faiss {
 
 /*************************************************************
@@ -496,67 +496,90 @@ void read_ScalarQuantizer(ScalarQuantizer* ivsc, IOReader* f) {
     READVECTOR(ivsc->trained);
     ivsc->set_derived_sizes();
 }
+
+#undef READ1_AND_COUNT // 确保之前的定义被覆盖
+#undef READVECTOR_AND_COUNT
+
+#define READ1_AND_COUNT(var, count_var, reader_f) \
+    do {                                          \
+        READANDCHECK(&(var), 1);                  \
+        (count_var) += sizeof(var);               \
+    } while (0)
+
+#define READVECTOR_AND_COUNT(vec, count_var, reader_f)                 \
+    do {                                                               \
+        size_t size;                                                   \
+        /* 1. 读取元素数量 */                                          \
+        READANDCHECK(&size, 1);                                        \
+        (count_var) += sizeof(size_t);                                 \
+        /* 2. 检查大小是否合理 */                                      \
+        FAISS_THROW_IF_NOT(size < (1ULL << 40));                       \
+        /* 3. 调整 vector 大小 */                                      \
+        (vec).resize(size);                                            \
+        if (size > 0) {                                                \
+            /* 4. 计算要读取的总字节数 */                              \
+            size_t bytes_to_read =                                     \
+                    size * sizeof(typename decltype(vec)::value_type); \
+            /* 5. 读取数据 */                                          \
+            READANDCHECK((vec).data(), size);                          \
+            /* 6. 累加字节数 */                                        \
+            (count_var) += bytes_to_read;                              \
+        }                                                              \
+    } while (0)
+
 static void read_HNSW(HNSW* hnsw, IOReader* f) {
-    printf("[READ_HNSW] Reading HNSW graph data...\n"); // 添加日志点 1
-    READVECTOR(hnsw->assign_probas);
-    READVECTOR(hnsw->cum_nneighbor_per_level);
-    READVECTOR(hnsw->levels);
-    printf("[READ_HNSW] Read levels vector, size: %zd\n",
-           hnsw->levels.size()); // 添加日志点 2
+    printf("[read_HNSW - CSR NL v4] Reading metadata & CSR indices (manual offset)...\n");
+    uint64_t calculated_offset = 0;
 
-    // --- NEW: Read storage format flag (written after levels) ---
-    // READ1(hnsw->storage_is_compact);
-    // printf("[READ_HNSW] Read storage_is_compact flag: %s\n",
-    //        hnsw->storage_is_compact ? "true (Compact)" : "false (Original)");
-    hnsw->storage_is_compact = false;
+    READVECTOR_AND_COUNT(hnsw->assign_probas, calculated_offset, f);
+    READVECTOR_AND_COUNT(hnsw->cum_nneighbor_per_level, calculated_offset, f);
+    READVECTOR_AND_COUNT(hnsw->levels, calculated_offset, f);
+    hnsw->n_total_vectors = hnsw->levels.size();
+    printf("[read_HNSW NL v4] Read levels vector, size: %zd\n",
+           hnsw->levels.size());
 
-    if (hnsw->storage_is_compact) {
-        printf("[READ_HNSW] Reading Compact Storage format...\n"); // 添加日志点
-                                                                   // 4
-        // --- Read Compact Storage data ---
-        READVECTOR(hnsw->compact_neighbors_data);
-        READVECTOR(hnsw->compact_level_ptr);
-        READVECTOR(hnsw->compact_node_offsets);
-        printf("[READ_HNSW] Compact Storage sizes: neighbors_data=%zd, level_ptr=%zd, node_offsets=%zd\n",
-               hnsw->compact_neighbors_data.size(),
-               hnsw->compact_level_ptr.size(),
-               hnsw->compact_node_offsets.size());
+    bool compact_flag_read;
+    READ1_AND_COUNT(
+            compact_flag_read, calculated_offset, f);
+    FAISS_THROW_IF_NOT_MSG(
+            compact_flag_read == true, "Expected CSR format flag in file.");
+    hnsw->storage_is_compact = compact_flag_read;
 
-        // Ensure original storage vectors are cleared as they are not used
-        hnsw->offsets.clear();
-        hnsw->neighbors.clear(); // Use clear for MaybeOwnedVector
-    } else {
-        printf("[READ_HNSW] Reading Original Storage format...\n"); // 添加日志点
-                                                                    // 6
-        // --- Read Original Storage data ---
-        READVECTOR(hnsw->offsets);
-        // Use the specific read_vector function for MaybeOwnedVector
-        read_vector(hnsw->neighbors, f);
-        printf("[READ_HNSW] Original Storage sizes: offsets=%zd, neighbors=%zd\n",
-               hnsw->offsets.size(),
-               hnsw->neighbors.size());
+    printf("[read_HNSW NL v4] Reading Compact Storage format indices...\n");
 
-        // Ensure compact storage vectors are cleared as they are not used
-        hnsw->compact_neighbors_data.clear();
-        hnsw->compact_neighbors_data.owned_data.shrink_to_fit();
-        hnsw->compact_level_ptr.clear();
-        hnsw->compact_node_offsets.clear();
-        hnsw->compact_node_offsets.owned_data.shrink_to_fit();
-    }
+    READVECTOR_AND_COUNT(hnsw->compact_level_ptr, calculated_offset, f);
+    printf("[read_HNSW NL v4] Read compact_level_ptr, size: %zd\n",
+           hnsw->compact_level_ptr.size());
+    READVECTOR_AND_COUNT(hnsw->compact_node_offsets, calculated_offset, f);
+    printf("[read_HNSW NL v4] Read compact_node_offsets, size: %zd\n",
+           hnsw->compact_node_offsets.size());
+    FAISS_THROW_IF_NOT(
+            hnsw->compact_node_offsets.size() == hnsw->n_total_vectors + 1);
 
-    hnsw->compact_level_ptr.owned_data.shrink_to_fit();
-    READ1(hnsw->entry_point);
-    READ1(hnsw->max_level);
-    printf("[READ_HNSW] Read entry_point: %d, max_level: %d\n",
-           hnsw->entry_point,
+    READ1_AND_COUNT(hnsw->entry_point, calculated_offset, f);
+    READ1_AND_COUNT(hnsw->max_level, calculated_offset, f);
+    READ1_AND_COUNT(hnsw->efConstruction, calculated_offset, f);
+    READ1_AND_COUNT(hnsw->efSearch, calculated_offset, f);
+
+    int dummy_int;
+    READANDCHECK(&dummy_int, 1);
+    calculated_offset += sizeof(int);
+
+    printf("[read_HNSW NL v4] Read entry_point: %ld, max_level: %d\n",
+           (long)hnsw->entry_point,
            hnsw->max_level);
-    READ1(hnsw->efConstruction);
-    READ1(hnsw->efSearch);
 
-    // // deprecated field
-    // READ1(hnsw->upper_beam);
-    READ1_DUMMY(int)
-    printf("[READ_HNSW] Finished reading HNSW graph data.\n"); // 添加日志点 9
+    uint32_t storage_fourcc;
+    READ1_AND_COUNT(storage_fourcc, calculated_offset, f);
+    printf("[read_HNSW NL v4] Read storage fourcc: 0x%x\n", storage_fourcc);
+
+    hnsw->neighbors_start_offset =
+            calculated_offset + 37; // 37 is from the header
+    printf("[read_HNSW NL v4] Neighbors data block starts at calculated offset: %" PRIu64
+           "\n",
+           hnsw->neighbors_start_offset);
+
+    printf("[read_HNSW NL v4] Finished reading metadata and CSR indices.\n");
 }
 
 static void read_NSG(NSG* nsg, IOReader* f) {
@@ -1169,47 +1192,52 @@ Index* read_index(
         read_HNSW(&idxhnsw->hnsw, f);
 
         if (external_storage_path != nullptr) {
-            // Load storage from the external file
-            printf("INFO: Loading external storage from: %s\n",
-                   external_storage_path);
-            try {
-                // Decide reader type based on io_flags if desired (e.g., mmap)
-                std::unique_ptr<IOReader> storage_reader;
-                if ((io_flags & IO_FLAG_MMAP_IFC) == IO_FLAG_MMAP_IFC) {
-                    auto owner = std::make_shared<MmappedFileMappingOwner>(
-                            external_storage_path);
-                    storage_reader =
-                            std::make_unique<MappedFileIOReader>(owner);
-                    printf("INFO: Using MappedFileIOReader for external storage.\n");
-                } else {
-                    storage_reader = std::make_unique<FileIOReader>(
-                            external_storage_path);
-                    printf("INFO: Using FileIOReader for external storage.\n");
-                }
+            if (strcmp(external_storage_path, "/dev/null") == 0) {
+                printf("INFO: Skipping external storage loading.\n");
+            } else {
+                // Load storage from the external file
+                printf("INFO: Loading external storage from: %s\n",
+                       external_storage_path);
+                try {
+                    // Decide reader type based on io_flags if desired (e.g.,
+                    // mmap)
+                    std::unique_ptr<IOReader> storage_reader;
+                    if ((io_flags & IO_FLAG_MMAP_IFC) == IO_FLAG_MMAP_IFC) {
+                        auto owner = std::make_shared<MmappedFileMappingOwner>(
+                                external_storage_path);
+                        storage_reader =
+                                std::make_unique<MappedFileIOReader>(owner);
+                        printf("INFO: Using MappedFileIOReader for external storage.\n");
+                    } else {
+                        storage_reader = std::make_unique<FileIOReader>(
+                                external_storage_path);
+                        printf("INFO: Using FileIOReader for external storage.\n");
+                    }
 
-                // Recursively call read_index for the storage part, passing
-                // flags Pass nullptr for external_storage_path in recursive
-                // call
-                idxhnsw->storage =
-                        read_index(storage_reader.get(), io_flags, nullptr);
+                    // Recursively call read_index for the storage part, passing
+                    // flags Pass nullptr for external_storage_path in recursive
+                    // call
+                    idxhnsw->storage =
+                            read_index(storage_reader.get(), io_flags, nullptr);
 
-                if (!idxhnsw->storage) {
+                    if (!idxhnsw->storage) {
+                        FAISS_THROW_FMT(
+                                "Failed to read external storage index from %s",
+                                external_storage_path);
+                    }
+                    printf("INFO: Successfully loaded external storage.\n");
+
+                } catch (const std::exception& e) {
+                    // Clean up partially created index if external load fails
+                    delete idxhnsw;
                     FAISS_THROW_FMT(
-                            "Failed to read external storage index from %s",
-                            external_storage_path);
+                            "Error reading external storage from %s: %s",
+                            external_storage_path,
+                            e.what());
                 }
-                printf("INFO: Successfully loaded external storage.\n");
-
-            } catch (const std::exception& e) {
-                // Clean up partially created index if external load fails
-                delete idxhnsw;
-                FAISS_THROW_FMT(
-                        "Error reading external storage from %s: %s",
-                        external_storage_path,
-                        e.what());
+                // IMPORTANT: We DO NOT read storage from the primary reader 'f'
+                // anymore. 'f' remains positioned after the HNSW graph data.
             }
-            // IMPORTANT: We DO NOT read storage from the primary reader 'f'
-            // anymore. 'f' remains positioned after the HNSW graph data.
 
         } else if (io_flags & IO_FLAG_SKIP_STORAGE) {
             // Original logic for skipping storage from primary reader

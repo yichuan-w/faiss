@@ -2,8 +2,8 @@
 
 #include <cstdint>
 #include <fstream>
-#include <iostream>
 #include <string>
+#include <vector>
 
 #include "faiss/Index.h"
 #include "faiss/impl/FaissAssert.h"
@@ -62,14 +62,8 @@ bool load_simple_bin(
         const std::string& filename,
         T*& data,
         size_t& n_rows,
-        size_t& n_cols);
-
-template <typename T>
-bool load_simple_bin(
-        const std::string& filename,
-        T*& data,
-        size_t& n_rows,
         size_t& n_cols) {
+    data = nullptr;
     n_rows = 0;
     n_cols = 0;
     std::ifstream reader(filename, std::ios::binary);
@@ -84,9 +78,14 @@ bool load_simple_bin(
 
     size_t num_elements = n_rows * n_cols;
     FAISS_ASSERT(num_elements > 0);
+
     data = new T[num_elements];
-    reader.read(reinterpret_cast<char*>(data), num_elements * sizeof(T));
+
+    size_t bytes_to_read = num_elements * sizeof(T);
+    reader.read(reinterpret_cast<char*>(data), bytes_to_read);
+
     FAISS_ASSERT(reader);
+    FAISS_ASSERT((size_t)reader.gcount() == bytes_to_read);
     return true;
 }
 

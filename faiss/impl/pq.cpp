@@ -4,8 +4,10 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <vector>
+#include "faiss/impl/FaissAssert.h"
 
 namespace faiss {
 
@@ -41,119 +43,87 @@ bool PQPrunerDataLoader::load_pq_pivots(const std::string& pq_pivots_path) {
     centroid = nullptr;
     delete[] chunk_offsets;
     chunk_offsets = nullptr;
-    ndims = 0;
-    n_chunks = 0;
 
     std::ifstream reader(pq_pivots_path, std::ios::binary);
-    if (!reader) { /* ... */
-        return false;
-    }
 
-    // 1. Read offset metadata
-    size_t offset_metadata_size = 0;
-    reader.read(reinterpret_cast<char*>(&offset_metadata_size), sizeof(size_t));
-    if (!reader ||
-        (offset_metadata_size != 4 && offset_metadata_size != 5)) { /* ... */
-        return false;
-    }
-    std::vector<size_t> file_offsets(offset_metadata_size);
+    int32_t offset_nr_i32, offset_nc_i32;
+    reader.read(reinterpret_cast<char*>(&offset_nr_i32), sizeof(int32_t));
+    reader.read(reinterpret_cast<char*>(&offset_nc_i32), sizeof(int32_t));
+
+    size_t offset_rows = (size_t)offset_nr_i32;
+    size_t offset_cols = (size_t)offset_nc_i32;
+    // FAISS_ASSERT(offset_cols == 1 && (offset_rows == 4 || offset_rows == 5));
+
+    size_t num_offsets = offset_rows * offset_cols;
+    std::unique_ptr<size_t[]> file_offsets(new size_t[num_offsets]);
     reader.read(
-            reinterpret_cast<char*>(file_offsets.data()),
-            offset_metadata_size * sizeof(size_t));
-    if (!reader) { /* ... */
-        return false;
-    }
-    bool use_old_filetype = (offset_metadata_size == 5);
+            reinterpret_cast<char*>(file_offsets.get()),
+            num_offsets * sizeof(size_t));
 
-    // 2. Load original codebook
+    bool use_old_filetype = (offset_rows == 5);
+
     constexpr size_t NUM_PQ_CENTROIDS = 256;
-    size_t table_offset = file_offsets[0];
-    reader.seekg(table_offset, std::ios::beg);
-    uint32_t file_rows, file_cols;
-    reader.read(reinterpret_cast<char*>(&file_rows), sizeof(uint32_t));
-    reader.read(reinterpret_cast<char*>(&file_cols), sizeof(uint32_t));
-    if (!reader || file_rows != NUM_PQ_CENTROIDS || file_cols == 0) { /* ... */
-        return false;
+    float* tables_original = nullptr;
+    size_t pivot_rows = 0, pivot_cols = 0;
+    {
+        reader.seekg(file_offsets[0], std::ios::beg);
+        int32_t r_i32, c_i32;
+        reader.read(reinterpret_cast<char*>(&r_i32), sizeof(int32_t));
+        reader.read(reinterpret_cast<char*>(&c_i32), sizeof(int32_t));
+        pivot_rows = (size_t)r_i32;
+        pivot_cols = (size_t)c_i32;
+        // FAISS_ASSERT(pivot_rows == NUM_PQ_CENTROIDS && pivot_cols > 0); //
+        ndims = pivot_cols;
+        tables_original = new float[pivot_rows * pivot_cols];
+        reader.read(
+                reinterpret_cast<char*>(tables_original),
+                pivot_rows * pivot_cols * sizeof(float));
     }
-    ndims = file_cols;
-    float* tables_original = new (std::nothrow) float[NUM_PQ_CENTROIDS * ndims];
-    if (!tables_original) { /* ... */
-        return false;
-    }
-    reader.read(
-            reinterpret_cast<char*>(tables_original),
-            NUM_PQ_CENTROIDS * ndims * sizeof(float));
-    if (!reader) {
-        delete[] tables_original;
-        return false;
-    }
+    std::unique_ptr<float[]> tables_original_ptr(tables_original);
 
-    // 3. Load centroid
-    size_t centroid_offset = file_offsets[1];
-    reader.seekg(centroid_offset, std::ios::beg);
-    reader.read(reinterpret_cast<char*>(&file_rows), sizeof(uint32_t));
-    reader.read(reinterpret_cast<char*>(&file_cols), sizeof(uint32_t));
-    if (!reader || file_rows != ndims || file_cols != 1) {
-        delete[] tables_original;
-        return false;
+    float* centroid_raw = nullptr;
+    size_t centroid_rows = 0, centroid_cols = 0;
+    {
+        reader.seekg(file_offsets[1], std::ios::beg);
+        int32_t r_i32, c_i32;
+        reader.read(reinterpret_cast<char*>(&r_i32), sizeof(int32_t));
+        reader.read(reinterpret_cast<char*>(&c_i32), sizeof(int32_t));
+        centroid_rows = (size_t)r_i32;
+        centroid_cols = (size_t)c_i32;
+        // FAISS_ASSERT(centroid_rows == ndims && centroid_cols == 1); //
+        centroid_raw = new float[centroid_rows * centroid_cols]; // 直接 new
+        reader.read(
+                reinterpret_cast<char*>(centroid_raw),
+                centroid_rows * centroid_cols * sizeof(float));
     }
-    centroid = new (std::nothrow) float[ndims];
-    if (!centroid) {
-        delete[] tables_original;
-        return false;
-    }
-    reader.read(reinterpret_cast<char*>(centroid), ndims * sizeof(float));
-    if (!reader) {
-        delete[] tables_original;
-        delete[] centroid;
-        centroid = nullptr;
-        return false;
-    }
+    this->centroid = centroid_raw;
 
-    // 4. Load chunk offsets
-    int chunk_offsets_index = use_old_filetype ? 3 : 2;
-    size_t chunk_offset_offset = file_offsets[chunk_offsets_index];
-    reader.seekg(chunk_offset_offset, std::ios::beg);
-    reader.read(reinterpret_cast<char*>(&file_rows), sizeof(uint32_t));
-    reader.read(reinterpret_cast<char*>(&file_cols), sizeof(uint32_t));
-    if (!reader || file_cols != 1 || file_rows < 2) {
-        delete[] tables_original;
-        delete[] centroid;
-        return false;
+    int chunk_offsets_file_idx = use_old_filetype ? 3 : 2;
+    uint32_t* chunk_offsets_raw = nullptr;
+    size_t chunk_rows = 0, chunk_cols = 0;
+    {
+        reader.seekg(file_offsets[chunk_offsets_file_idx], std::ios::beg);
+        int32_t r_i32, c_i32;
+        reader.read(reinterpret_cast<char*>(&r_i32), sizeof(int32_t));
+        reader.read(reinterpret_cast<char*>(&c_i32), sizeof(int32_t));
+        chunk_rows = (size_t)r_i32;
+        chunk_cols = (size_t)c_i32;
+        // FAISS_ASSERT(chunk_cols == 1 && chunk_rows >= 2);
+        n_chunks = chunk_rows - 1;
+        chunk_offsets_raw = new uint32_t[chunk_rows * chunk_cols];
+        reader.read(
+                reinterpret_cast<char*>(chunk_offsets_raw),
+                chunk_rows * chunk_cols * sizeof(uint32_t));
     }
-    n_chunks = file_rows - 1;
-    chunk_offsets = new (std::nothrow) uint32_t[file_rows];
-    if (!chunk_offsets) {
-        delete[] tables_original;
-        delete[] centroid;
-        return false;
-    }
-    reader.read(
-            reinterpret_cast<char*>(chunk_offsets),
-            file_rows * sizeof(uint32_t));
-    if (!reader) {
-        delete[] tables_original;
-        delete[] centroid;
-        delete[] chunk_offsets;
-        chunk_offsets = nullptr;
-        return false;
-    }
+    this->chunk_offsets = chunk_offsets_raw;
 
-    // 5. Transpose codebook
-    tables_tr = new (std::nothrow) float[ndims * NUM_PQ_CENTROIDS];
-    if (!tables_tr) {
-        delete[] tables_original;
-        delete[] centroid;
-        delete[] chunk_offsets;
-        return false;
-    }
+    tables_tr = new float[ndims * NUM_PQ_CENTROIDS];
     for (size_t i = 0; i < NUM_PQ_CENTROIDS; i++) {
         for (size_t j = 0; j < ndims; j++) {
             tables_tr[j * NUM_PQ_CENTROIDS + i] =
                     tables_original[i * ndims + j];
         }
     }
-    delete[] tables_original;
 
     initialized = true;
     std::cout << "PQPrunerDataLoader initialized from .cpp. Dims: " << ndims
@@ -206,11 +176,6 @@ size_t aggregate_pq_codes(
     size_t count = 0;
     for (size_t i = 0; i < num_ids; i++) {
         idx_t id = ids[i];
-        if (id < 0 || (size_t)id >= total_codes_count) {
-            std::cerr << "Warning: Invalid ID " << id
-                      << " during PQ code aggregation." << std::endl;
-            continue;
-        }
         const uint8_t* code_ptr = all_pq_codes + (size_t)id * code_size;
         memcpy(out_aggregated_codes + count * code_size, code_ptr, code_size);
         count++;

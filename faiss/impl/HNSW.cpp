@@ -949,8 +949,6 @@ int search_from_candidates(
     const IDSelector* sel = nullptr;
 
     // PQ pruning setup
-    bool perform_pq_pruning =
-            hnsw.pq_data_loader && hnsw.pq_data_loader->is_initialized();
     std::vector<float> pq_dists_lookup;
     std::vector<float> query_preprocessed;
     std::vector<uint8_t> pq_code_scratch;
@@ -988,6 +986,9 @@ int search_from_candidates(
         sel = params->sel;
     }
 
+    bool perform_pq_pruning =
+            (hnsw.pq_data_loader && hnsw.pq_data_loader->is_initialized() &&
+             pq_select_ratio < 1);
     // Initialize PQ data if needed
     if (perform_pq_pruning) {
         size_t dim = hnsw.pq_data_loader->get_dims();
@@ -1030,7 +1031,7 @@ int search_from_candidates(
         vt.set(v1);
 
         // Add initial candidates to PQ queue if using PQ pruning
-        if (perform_pq_pruning && pq_select_ratio < 1) {
+        if (perform_pq_pruning) {
             pq_code_scratch.resize(hnsw.code_size);
             pq_dists_out.resize(1);
 
@@ -1085,8 +1086,10 @@ int search_from_candidates(
                 FAISS_ASSERT(node_neighbor_count >= 0);
                 current_node_neighbors.resize(node_neighbor_count);
                 for (size_t i = 0; i < node_neighbor_count; ++i) {
-                    current_node_neighbors[i] =
-                            static_cast<idx_t>(neighbor_read_buffer[i]);
+                    if (!vt.get(neighbor_read_buffer[i])) {
+                        current_node_neighbors[i] =
+                                static_cast<idx_t>(neighbor_read_buffer[i]);
+                    }
                 }
 
                 beam_nodes.push_back(v0);
@@ -1102,27 +1105,22 @@ int search_from_candidates(
                 FAISS_ASSERT(v0 >= 0);
 
                 std::vector<idx_t> current_node_neighbors;
-                size_t neighbors_read_count =
+                size_t node_neighbor_count =
                         hnsw.fetch_neighbors(v0, 0, neighbor_read_buffer);
                 nfetch++;
-                if (neighbors_read_count >= 0) {
-                    current_node_neighbors.resize(neighbors_read_count);
-                    for (size_t i = 0; i < neighbors_read_count; ++i) {
+
+                FAISS_ASSERT(node_neighbor_count >= 0);
+
+                current_node_neighbors.resize(node_neighbor_count);
+                for (size_t i = 0; i < node_neighbor_count; ++i) {
+                    if (!vt.get(neighbor_read_buffer[i])) {
                         current_node_neighbors[i] =
                                 static_cast<idx_t>(neighbor_read_buffer[i]);
                     }
-                    beam_nodes.push_back(v0);
-                    beam_distances.push_back(d0);
-                    beam_fetched_neighbors[v0] =
-                            std::move(current_node_neighbors);
-                } else {
-                    fprintf(stderr,
-                            "Search Warning: Fetch failed for candidate %ld in fixed beam.\n",
-                            (long)v0);
                 }
-
-                // beam_nodes.push_back(v0);
-                // beam_distances.push_back(d0);
+                beam_nodes.push_back(v0);
+                beam_distances.push_back(d0);
+                beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
         }
 
@@ -1149,9 +1147,9 @@ int search_from_candidates(
             const auto& neighbors_of_v0 = beam_fetched_neighbors[v0];
             for (idx_t v1 : neighbors_of_v0) {
                 assert(v1 >= 0);
-                if (!vt.get(v1)) {
-                    all_new_neighbors_set.insert(v1);
-                }
+                assert(!vt.get(v1)); // Since the current_node_neighbors is
+                                     // already filtered by vt
+                all_new_neighbors_set.insert(v1);
             }
         }
 
@@ -1161,7 +1159,7 @@ int search_from_candidates(
 
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
-        if (perform_pq_pruning && pq_select_ratio < 1) {
+        if (perform_pq_pruning) {
             size_t n_new = unique_new_neighbors.size();
             pq_code_scratch.resize(n_new * hnsw.code_size);
             pq_dists_out.resize(n_new);
@@ -1414,72 +1412,7 @@ HNSWStats greedy_update_nearest(
 
         stats.nhops++;
 
-        // // a faster version: reference version in unit test test_hnsw.cpp
-        // // the following version processes 4 neighbors at a time
-        // auto update_with_candidate = [&](const storage_idx_t idx,
-        //                                  const float dis) {
-        //     if (dis < d_nearest) {
-        //         nearest = idx;
-        //         d_nearest = dis;
-        //     }
-        // };
-
-        // int n_buffered = 0;
-        // storage_idx_t buffered_ids[4];
-
-        // for (size_t j = begin; j < end; j++) {
-        //     // *** CSR Change: Conditional neighbor access ***
-        //     HNSW::storage_idx_t v = hnsw.storage_is_compact
-        //             ? hnsw.compact_neighbors_data[j]
-        //             : hnsw.neighbors[j]; // 保持类型 HNSW::storage_idx_t
-        //     // *** CSR Change: Conditional break for original format ***
-        //     if (v < 0) {
-        //         // printf("neighbor: %ld\n", j - begin);
-        //         level_neighbors += j - begin;
-        //         // printf("qdis fetch count: %ld\n", qdis.get_fetch_count());
-        //         break;
-        //     }
-
-        //     ndis += 1;
-
-        //     buffered_ids[n_buffered] = v;
-        //     n_buffered += 1;
-
-        //     if (n_buffered == 4) {
-        //         float dis[4];
-        //         qdis.distances_batch_4(
-        //                 buffered_ids[0],
-        //                 buffered_ids[1],
-        //                 buffered_ids[2],
-        //                 buffered_ids[3],
-        //                 dis[0],
-        //                 dis[1],
-        //                 dis[2],
-        //                 dis[3]);
-
-        //         for (size_t id4 = 0; id4 < 4; id4++) {
-        //             update_with_candidate(buffered_ids[id4], dis[id4]);
-        //         }
-
-        //         n_buffered = 0;
-        //     }
-        // }
-
-        // // process leftovers
-        // for (size_t icnt = 0; icnt < n_buffered; icnt++) {
-        //     float dis = qdis(buffered_ids[icnt]);
-        //     update_with_candidate(buffered_ids[icnt], dis);
-        // }
-
-        // // update stats
-        // stats.ndis += ndis;
-        // stats.nhops += 1;
-
         if (nearest == prev_nearest) {
-            // printf("level %d, level_neighbors: %d, zmq fetch count: %ld\n",
-            //        level,
-            //        level_neighbors,
-            //        qdis.get_fetch_count());
             return stats;
         }
     }

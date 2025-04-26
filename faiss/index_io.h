@@ -72,6 +72,18 @@ struct HNSWIndexConfig {
     bool is_skip_neighbors;
     bool is_recompute;
     const char* external_storage_path;
+
+    HNSWIndexConfig(
+            bool is_compact,
+            bool is_skip_neighbors,
+            bool is_recompute,
+            const char* external_storage_path)
+            : is_compact(is_compact),
+              is_skip_neighbors(is_skip_neighbors),
+              is_recompute(is_recompute),
+              external_storage_path(external_storage_path) {}
+
+    HNSWIndexConfig() = default;
 };
 
 Index* read_index(

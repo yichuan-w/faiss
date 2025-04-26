@@ -70,9 +70,10 @@ void HNSW::initialize_on_demand_resources(
     printf("[InitOnDemand] Opened HNSW index file descriptor: %d\n",
            this->graph_fd);
 
-    this->load_pq_pruning_data(pq_pivots_path, pq_compressed_path);
+    bool pq_pruning_enabled =
+            this->load_pq_pruning_data(pq_pivots_path, pq_compressed_path);
 
-    if (this->use_pq_pruning) {
+    if (pq_pruning_enabled) {
         FAISS_THROW_IF_NOT_FMT(
                 this->n_total_vectors == this->levels.size(),
                 "PQ code vector count (%zu) does not match HNSW levels size (%zu) after initialization",
@@ -80,7 +81,11 @@ void HNSW::initialize_on_demand_resources(
                 this->levels.size());
         printf("[InitOnDemand] PQ data loaded/verified.\n");
     } else {
+        // PQ_data is not loaded here
         printf("[InitOnDemand] PQ pruning is not enabled.\n");
+        printf("Status: %d\n",
+               this->pq_data_loader != nullptr &&
+                       this->pq_data_loader->is_initialized());
     }
     printf("[InitOnDemand] On-demand resources initialized.\n");
 }
@@ -162,10 +167,9 @@ size_t HNSW::fetch_neighbors(
     return num_neighbors;
 }
 
-void HNSW::load_pq_pruning_data(
+bool HNSW::load_pq_pruning_data(
         const std::string& pq_pivots_path,
         const std::string& pq_compressed_path) {
-    use_pq_pruning = false;
     pq_data_loader = nullptr;
 
     auto loader = std::make_shared<PQPrunerDataLoader>();
@@ -174,7 +178,7 @@ void HNSW::load_pq_pruning_data(
         std::cerr
                 << "Failed to load PQ pivots for pruning. PQ pruning disabled."
                 << std::endl;
-        return;
+        return false;
     }
 
     uint8_t* loaded_codes_ptr = nullptr;
@@ -187,14 +191,14 @@ void HNSW::load_pq_pruning_data(
         std::cerr
                 << "Failed to load PQ compressed codes for pruning. PQ pruning disabled."
                 << std::endl;
-        return;
+        return false;
     }
     if (codes_per_vector != loader->get_num_chunks()) {
         std::cerr << "Error: Chunk count mismatch between pivots ("
                   << loader->get_num_chunks() << ") and compressed codes ("
                   << codes_per_vector << "). PQ pruning disabled." << std::endl;
         delete[] loaded_codes_ptr;
-        return;
+        return false;
     }
 
     code_size = codes_per_vector;
@@ -204,9 +208,9 @@ void HNSW::load_pq_pruning_data(
     delete[] loaded_codes_ptr;
 
     pq_data_loader = loader;
-    use_pq_pruning = true;
     std::cout << "Successfully loaded data for PQ pruning: " << num_vectors
               << " vectors, " << code_size << " bytes/vector." << std::endl;
+    return true;
 }
 /**************************************************************
  * HNSW structure implementation
@@ -945,8 +949,8 @@ int search_from_candidates(
     const IDSelector* sel = nullptr;
 
     // PQ pruning setup
-    bool perform_pq_pruning = hnsw.use_pq_pruning && hnsw.pq_data_loader &&
-            hnsw.pq_data_loader->is_initialized();
+    bool perform_pq_pruning =
+            hnsw.pq_data_loader && hnsw.pq_data_loader->is_initialized();
     std::vector<float> pq_dists_lookup;
     std::vector<float> query_preprocessed;
     std::vector<uint8_t> pq_code_scratch;
@@ -977,12 +981,7 @@ int search_from_candidates(
             }
 
             // PQ pruning settings
-            if (hnsw_params->use_pq_pruning) {
-                perform_pq_pruning = hnsw_params->use_pq_pruning;
-            }
-            if (hnsw_params->pq_pruning_ratio > 0) {
-                pq_select_ratio = hnsw_params->pq_pruning_ratio;
-            }
+            pq_select_ratio = 1 - hnsw_params->pq_pruning_ratio;
 
             // cache_distances = hnsw_params->cache_distances;
         }
@@ -994,24 +993,17 @@ int search_from_candidates(
         size_t dim = hnsw.pq_data_loader->get_dims();
         size_t n_chunks = hnsw.pq_data_loader->get_num_chunks();
         const float* original_query = qdis.get_query();
-        if (!original_query) {
-            fprintf(stderr,
-                    "Warning: Cannot get original query for PQ. Disabling PQ pruning for this search.\n");
-            perform_pq_pruning = false;
-        } else {
-            query_preprocessed.resize(dim);
-            memcpy(query_preprocessed.data(),
-                   original_query,
-                   dim * sizeof(float));
-            hnsw.pq_data_loader->preprocess_query(
-                    query_preprocessed.data(), query_preprocessed.data());
-            pq_dists_lookup.resize(256 * n_chunks);
-            hnsw.pq_data_loader->populate_chunk_distances(
-                    query_preprocessed.data(), pq_dists_lookup.data());
 
-            pq_code_scratch.resize(max_deg_l0 * hnsw.code_size);
-            pq_dists_out.resize(max_deg_l0);
-        }
+        query_preprocessed.resize(dim);
+        memcpy(query_preprocessed.data(), original_query, dim * sizeof(float));
+        hnsw.pq_data_loader->preprocess_query(
+                query_preprocessed.data(), query_preprocessed.data());
+        pq_dists_lookup.resize(256 * n_chunks);
+        hnsw.pq_data_loader->populate_chunk_distances(
+                query_preprocessed.data(), pq_dists_lookup.data());
+
+        pq_code_scratch.resize(max_deg_l0 * hnsw.code_size);
+        pq_dists_out.resize(max_deg_l0);
     }
     neighbor_read_buffer.resize(max_deg_l0);
 
@@ -1038,7 +1030,7 @@ int search_from_candidates(
         vt.set(v1);
 
         // Add initial candidates to PQ queue if using PQ pruning
-        if (perform_pq_pruning) {
+        if (perform_pq_pruning && pq_select_ratio < 1) {
             pq_code_scratch.resize(hnsw.code_size);
             pq_dists_out.resize(1);
 
@@ -1169,7 +1161,7 @@ int search_from_candidates(
 
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
-        if (perform_pq_pruning) {
+        if (perform_pq_pruning && pq_select_ratio < 1) {
             size_t n_new = unique_new_neighbors.size();
             pq_code_scratch.resize(n_new * hnsw.code_size);
             pq_dists_out.resize(n_new);
@@ -1393,10 +1385,7 @@ HNSWStats greedy_update_nearest(
 
         size_t ndis = 0;
         ssize_t neighbors_read_count =
-                hnsw.fetch_neighbors(
-                        nearest,
-                        level,
-                        neighbor_read_buffer);
+                hnsw.fetch_neighbors(nearest, level, neighbor_read_buffer);
         stats.n_ios++;
 
         std::vector<idx_t> neighbors_to_process(neighbors_read_count);

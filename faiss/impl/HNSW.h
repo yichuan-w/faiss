@@ -257,7 +257,6 @@ struct HNSW {
 
     void save_degree_distribution(int level, const char* filename) const;
 
-    bool use_pq_pruning = false;
     float pq_pruning_ratio = 0.5;
 
     std::shared_ptr<PQPrunerDataLoader> pq_data_loader;
@@ -265,7 +264,7 @@ struct HNSW {
     size_t n_total_vectors = 0;    // number of vectors
     size_t code_size = 0;          // number of chunks per vector
 
-    void load_pq_pruning_data(
+    bool load_pq_pruning_data(
             const std::string& pq_pivots_path,
             const std::string& pq_compressed_path);
 

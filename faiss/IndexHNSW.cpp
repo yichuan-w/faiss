@@ -68,11 +68,9 @@ bool fetch_embeddings_zmq(
         std::vector<std::vector<float>>& out_embeddings,
         int zmq_port = 5555) // Default port kept
 {
-    // 0) 构造请求
     EmbeddingRequestMsgpack req_msgpack;
     req_msgpack.node_ids = node_ids;
 
-    // 序列化请求
     std::stringstream buffer;
     try {
         msgpack::pack(buffer, req_msgpack);
@@ -82,7 +80,6 @@ bool fetch_embeddings_zmq(
     }
     std::string req_str = buffer.str();
 
-    // 1) 创建上下文和套接字 (Same as before)
     void* context = zmq_ctx_new();
     if (!context) {
         // fprintf(stderr,
@@ -111,7 +108,6 @@ bool fetch_embeddings_zmq(
         return false;
     }
 
-    // 4) 发送序列化请求
     if (zmq_send(socket, req_str.data(), req_str.size(), 0) < 0) { /*...*/
         // fprintf(stderr,
         //         "[fetch_zmq] zmq_msg_recv failed: %s\n",
@@ -121,7 +117,6 @@ bool fetch_embeddings_zmq(
         return false;
     }
 
-    // 5) 等待接收服务端返回
     zmq_msg_t response;
     zmq_msg_init(&response);
     if (zmq_msg_recv(&response, socket, 0) < 0) { /*...*/
@@ -134,7 +129,6 @@ bool fetch_embeddings_zmq(
         return false;
     }
 
-    // 6) 解析响应
     EmbeddingResponseMsgpack resp_msgpack;
     const char* resp_data = static_cast<const char*>(zmq_msg_data(&response));
     size_t resp_size = zmq_msg_size(&response);
@@ -168,7 +162,6 @@ bool fetch_embeddings_zmq(
     //        parse_contains_nan ? "!!! CONTAINS NaN AFTER PARSE !!!"
     //                           : "(Checked first 10 for NaN)");
 
-    // 7) 验证维度
     if (resp_msgpack.dimensions.size() != 2) {
         // std::cerr << "Server response has invalid dimensions size: "
         //           << resp_msgpack.dimensions.size() << std::endl;
@@ -189,7 +182,6 @@ bool fetch_embeddings_zmq(
         return true; // Successful communication, no data returned
     }
 
-    // 验证数据大小
     size_t expected_floats = (size_t)batch_size * embedding_dim;
     if (resp_msgpack.embeddings_data.size() != expected_floats) {
         // std::cerr << "Embedding data size mismatch: Got "
@@ -221,7 +213,6 @@ bool fetch_embeddings_zmq(
         // clean (no NaNs checked).\n"); // Can be verbose
     }
 
-    // 8) 组装返回
     out_embeddings.clear();
     out_embeddings.resize(batch_size);
     const float* flat_data_ptr = resp_msgpack.embeddings_data.data();
@@ -231,7 +222,6 @@ bool fetch_embeddings_zmq(
                 flat_data_ptr + ((size_t)i + 1) * embedding_dim);
     }
 
-    // 9) 释放资源
     zmq_msg_close(&response);
     zmq_close(socket);
     zmq_ctx_destroy(context);
@@ -893,7 +883,7 @@ void hnsw_search(
             std::unique_ptr<DistanceComputer> dis;
             if (index->is_recompute) {
                 // Use ZmqDistanceComputer for recomputation
-                dis.reset(new ZmqDistanceComputer(index->storage));
+                dis.reset(new ZmqDistanceComputer(index->d, index->metric_type, index->metric_arg));
             } else {
                 // Use standard distance computer
                 dis.reset(index->get_distance_computer());

@@ -938,8 +938,8 @@ int search_from_candidates(
     int nfetch = 0;
     int npq = 0;
 
-    int beam_size = 2;         // Default beam width
-    int batch_size = 60;       // Default batch threshold
+    int beam_size = 1; // Default beam width
+    int batch_size = 0;
     bool use_batching = false; // Whether to use batching
     // bool cache_distances = false;
 
@@ -949,12 +949,11 @@ int search_from_candidates(
     const IDSelector* sel = nullptr;
 
     // PQ pruning setup
+    float pq_select_ratio = 1;
     std::vector<float> pq_dists_lookup;
     std::vector<float> query_preprocessed;
     std::vector<uint8_t> pq_code_scratch;
     std::vector<float> pq_dists_out;
-    float pq_select_ratio =
-            0.5; // Default ratio of candidates to select from PQ queue
 
     std::vector<HNSW::storage_idx_t> neighbor_read_buffer; // For pread
     size_t max_deg_l0 = hnsw.nb_neighbors(0);

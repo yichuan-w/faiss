@@ -47,13 +47,8 @@ HNSW::~HNSW() {
     }
 }
 
-void HNSW::initialize_on_demand_resources(
-        const std::string& index_filename,
-        const std::string& pq_pivots_path,
-        const std::string& pq_compressed_path) {
-    printf("[InitOnDemand] Initializing on-demand resources...\n");
+void HNSW::initialize_graph(const std::string& index_filename) {
     this->hnsw_index_filename = index_filename;
-
     if (this->graph_fd != -1) {
         close(this->graph_fd);
     }
@@ -69,25 +64,6 @@ void HNSW::initialize_on_demand_resources(
     }
     printf("[InitOnDemand] Opened HNSW index file descriptor: %d\n",
            this->graph_fd);
-
-    bool pq_pruning_enabled =
-            this->load_pq_pruning_data(pq_pivots_path, pq_compressed_path);
-
-    if (pq_pruning_enabled) {
-        FAISS_THROW_IF_NOT_FMT(
-                this->n_total_vectors == this->levels.size(),
-                "PQ code vector count (%zu) does not match HNSW levels size (%zu) after initialization",
-                this->n_total_vectors,
-                this->levels.size());
-        printf("[InitOnDemand] PQ data loaded/verified.\n");
-    } else {
-        // PQ_data is not loaded here
-        printf("[InitOnDemand] PQ pruning is not enabled.\n");
-        printf("Status: %d\n",
-               this->pq_data_loader != nullptr &&
-                       this->pq_data_loader->is_initialized());
-    }
-    printf("[InitOnDemand] On-demand resources initialized.\n");
 }
 
 size_t HNSW::fetch_neighbors(
@@ -1074,8 +1050,18 @@ int search_from_candidates(
                    (beam_nodes.empty() || total_neighbors < batch_size)) {
                 float d0 = 0;
                 int v0 = candidates.pop_min(&d0);
-                if (v0 < 0)
-                    continue;
+                assert(v0 >= 0);
+
+                if (do_dis_check) {
+                    // tricky stopping condition: there are more that ef
+                    // distances that are processed already that are smaller
+                    // than d0
+
+                    int n_dis_below = candidates.count_below(d0);
+                    if (n_dis_below >= efSearch) {
+                        break;
+                    }
+                }
 
                 std::vector<idx_t> current_node_neighbors;
                 size_t node_neighbor_count =
@@ -1103,6 +1089,17 @@ int search_from_candidates(
                 int v0 = candidates.pop_min(&d0);
                 FAISS_ASSERT(v0 >= 0);
 
+                if (do_dis_check) {
+                    // tricky stopping condition: there are more that ef
+                    // distances that are processed already that are smaller
+                    // than d0
+
+                    int n_dis_below = candidates.count_below(d0);
+                    if (n_dis_below >= efSearch) {
+                        break;
+                    }
+                }
+
                 std::vector<idx_t> current_node_neighbors;
                 size_t node_neighbor_count =
                         hnsw.fetch_neighbors(v0, 0, neighbor_read_buffer);
@@ -1110,11 +1107,10 @@ int search_from_candidates(
 
                 FAISS_ASSERT(node_neighbor_count >= 0);
 
-                current_node_neighbors.resize(node_neighbor_count);
                 for (size_t i = 0; i < node_neighbor_count; ++i) {
                     if (!vt.get(neighbor_read_buffer[i])) {
-                        current_node_neighbors[i] =
-                                static_cast<idx_t>(neighbor_read_buffer[i]);
+                        current_node_neighbors.push_back(
+                                static_cast<idx_t>(neighbor_read_buffer[i]));
                     }
                 }
                 beam_nodes.push_back(v0);
@@ -1126,14 +1122,6 @@ int search_from_candidates(
         // Continue if we couldn't pop any valid nodes
         if (beam_nodes.empty()) {
             continue;
-        }
-
-        // Check stopping condition for the first (best) node
-        if (do_dis_check) {
-            int n_dis_below = candidates.count_below(beam_distances[0]);
-            if (n_dis_below >= efSearch) {
-                break;
-            }
         }
 
         threshold = res.threshold;

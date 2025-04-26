@@ -986,20 +986,14 @@ void IndexHNSW::reset() {
 }
 
 void IndexHNSW::reconstruct(idx_t key, float* recons) const {
-    // Create temporary fetcher
-    ZmqDistanceComputer fetcher(storage);
-    const float* vec = fetcher.get_vector_zmq(key);
-    if (vec) {
+    if (is_recompute) {
+        ZmqDistanceComputer fetcher(storage);
+        const float* vec = fetcher.get_vector_zmq(key);
+        assert(vec);
         memcpy(recons, vec, d * sizeof(float));
     } else {
-        // Let potential subsequent crash happen, or fill with NaN
-        fprintf(stderr,
-                "IndexHNSW::reconstruct: Failed to fetch vector for key %ld\n",
-                (long)key);
-        std::fill_n(recons, d, std::numeric_limits<float>::quiet_NaN());
+        storage->reconstruct(key, recons);
     }
-
-    // storage->reconstruct(key, recons);
 }
 
 /**************************************************************

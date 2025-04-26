@@ -58,8 +58,7 @@ struct SearchParametersHNSW : SearchParameters {
     int batch_size = 0; // Batch size for neighbor processing (0 = no batching)
 
     // PQ-instructed pruning
-    bool use_pq_pruning = false;  // Enable PQ pruning for candidates
-    float pq_pruning_ratio = 0.5; // Ratio of candidates to select via PQ
+    float pq_pruning_ratio = 0; // Ratio of candidates to select via PQ
 
     //     bool cache_distances = false;
 
@@ -257,7 +256,7 @@ struct HNSW {
 
     void save_degree_distribution(int level, const char* filename) const;
 
-    float pq_pruning_ratio = 0.5;
+    float pq_pruning_ratio = 0;
 
     std::shared_ptr<PQPrunerDataLoader> pq_data_loader;
     std::vector<uint8_t> pq_codes; // PQ codes of all vectors (N * code_size)
@@ -280,10 +279,7 @@ struct HNSW {
             int level,
             std::vector<storage_idx_t>& buffer) const;
 
-    void initialize_on_demand_resources(
-            const std::string& index_filename,
-            const std::string& pq_pivots_path,
-            const std::string& pq_compressed_path);
+    void initialize_graph(const std::string& index_filename);
 
     ~HNSW(); // Close file descriptor
 };

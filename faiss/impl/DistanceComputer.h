@@ -65,7 +65,7 @@ struct DistanceComputer {
             const std::vector<idx_t>& ids,
             std::vector<float>& distances_out) {
         size_t counter = 0;
-        for (counter = 0; counter < ids.size(); counter += 4) {
+        for (counter = 0; counter < (ids.size() / 4) * 4; counter += 4) {
             distances_batch_4(
                     ids[counter],
                     ids[counter + 1],
@@ -137,14 +137,14 @@ struct NegativeDistanceComputer : DistanceComputer {
     /// compute distances of current query to a batch of stored vectors.
     /// DistanceComputer implementations that can fetch data in batches
     /// will benefit significantly from this.
-    void distances_batch(
-            const std::vector<idx_t>& ids,
-            std::vector<float>& distances_out) override {
-        basedis->distances_batch(ids, distances_out);
-        for (float& dis : distances_out) {
-            dis = -dis;
-        }
-    }
+    // void distances_batch(
+    //         const std::vector<idx_t>& ids,
+    //         std::vector<float>& distances_out) override {
+    //     basedis->distances_batch(ids, distances_out);
+    //     for (float& dis : distances_out) {
+    //         dis = -dis;
+    //     }
+    // }
 
     /// compute distance between two stored vectors
     float symmetric_dis(idx_t i, idx_t j) override {

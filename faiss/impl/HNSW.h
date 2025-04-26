@@ -52,9 +52,16 @@ struct SearchParametersHNSW : SearchParameters {
     int efSearch = 16;
     bool check_relative_distance = true;
     bool bounded_queue = true;
-    int beam_threshold = -1;
-    bool use_pq_pruning = false;
-    float pq_pruning_ratio = 0.5;
+
+    // Batch processing and beam size
+    int beam_size = 1;  // Beam size for beam search (1 = original)
+    int batch_size = 0; // Batch size for neighbor processing (0 = no batching)
+
+    // PQ-instructed pruning
+    bool use_pq_pruning = false;  // Enable PQ pruning for candidates
+    float pq_pruning_ratio = 0.5; // Ratio of candidates to select via PQ
+
+    //     bool cache_distances = false;
 
     ~SearchParametersHNSW() {}
 };
@@ -152,6 +159,8 @@ struct HNSW {
 
     /// expansion factor at search time
     int efSearch = 16;
+
+    bool neighbors_on_disk = false;
 
     /// during search: do we check whether the next best distance is good
     /// enough?
@@ -267,11 +276,10 @@ struct HNSW {
             0; // Byte offset where neighbor data starts
 
     // On-demand neighbor fetch method
-    ssize_t fetch_neighbors_on_demand(
+    size_t fetch_neighbors(
             idx_t node_id,
             int level,
-            std::vector<storage_idx_t>& buffer // Output/temporary buffer
-    ) const;
+            std::vector<storage_idx_t>& buffer) const;
 
     void initialize_on_demand_resources(
             const std::string& index_filename,

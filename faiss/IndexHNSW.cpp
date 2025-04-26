@@ -888,10 +888,16 @@ void hnsw_search(
             VisitedTable vt(index->ntotal);
             typename BlockResultHandler::SingleResultHandler res(bres);
 
-            // std::unique_ptr<DistanceComputer> dis(
-            //         storage_distance_computer(index->storage));
-            std::unique_ptr<DistanceComputer> dis(
-                    index->get_distance_computer());
+            // Select the appropriate distance computer based on use_recompute
+            // flag
+            std::unique_ptr<DistanceComputer> dis;
+            if (index->is_recompute) {
+                // Use ZmqDistanceComputer for recomputation
+                dis.reset(new ZmqDistanceComputer(index->storage));
+            } else {
+                // Use standard distance computer
+                dis.reset(index->get_distance_computer());
+            }
 
 #pragma omp for reduction(+ : n1, n2, ndis, nhops, total_fetches_accum) \
         schedule(guided)
@@ -1271,9 +1277,12 @@ void IndexHNSW::permute_entries(const idx_t* perm) {
 }
 
 DistanceComputer* IndexHNSW::get_distance_computer() const {
-    return new ZmqDistanceComputer(
-            this->d, this->metric_type, this->metric_arg);
-    // return storage->get_distance_computer();
+    if (is_recompute) {
+        return new ZmqDistanceComputer(
+                this->d, this->metric_type, this->metric_arg);
+    } else {
+        return storage->get_distance_computer();
+    }
 }
 
 // ---- Addition: Implement method to get fetch count ----

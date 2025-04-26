@@ -53,6 +53,8 @@ struct IndexHNSW : Index {
     // copy gets its own atomic counter.
     mutable std::atomic<size_t>* fetch_count_ptr = nullptr;
 
+    bool is_recompute = false;
+
     explicit IndexHNSW(
             int d = 0,
             int M = 32,

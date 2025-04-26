@@ -497,72 +497,80 @@ void read_ScalarQuantizer(ScalarQuantizer* ivsc, IOReader* f) {
     ivsc->set_derived_sizes();
 }
 
-#undef READ1_AND_COUNT // 确保之前的定义被覆盖
-#undef READVECTOR_AND_COUNT
-
+// Modified version of READ1
 #define READ1_AND_COUNT(var, count_var, reader_f) \
     do {                                          \
         READANDCHECK(&(var), 1);                  \
         (count_var) += sizeof(var);               \
     } while (0)
 
-#define READVECTOR_AND_COUNT(vec, count_var, reader_f)                 \
-    do {                                                               \
-        size_t size;                                                   \
-        /* 1. 读取元素数量 */                                          \
-        READANDCHECK(&size, 1);                                        \
-        (count_var) += sizeof(size_t);                                 \
-        /* 2. 检查大小是否合理 */                                      \
-        FAISS_THROW_IF_NOT(size < (1ULL << 40));                       \
-        /* 3. 调整 vector 大小 */                                      \
-        (vec).resize(size);                                            \
-        if (size > 0) {                                                \
-            /* 4. 计算要读取的总字节数 */                              \
-            size_t bytes_to_read =                                     \
-                    size * sizeof(typename decltype(vec)::value_type); \
-            /* 5. 读取数据 */                                          \
-            READANDCHECK((vec).data(), size);                          \
-            /* 6. 累加字节数 */                                        \
-            (count_var) += bytes_to_read;                              \
-        }                                                              \
+// Modified version of READVECTOR
+#define READVECTOR_AND_COUNT(vec, count_var, reader_f)               \
+    do {                                                             \
+        size_t size;                                                 \
+        READANDCHECK(&size, 1);                                      \
+        (count_var) += sizeof(size_t);                               \
+        FAISS_THROW_IF_NOT(size >= 0 && size < (uint64_t{1} << 40)); \
+        (vec).resize(size);                                          \
+        size_t bytes_to_read =                                       \
+                size * sizeof(typename decltype(vec)::value_type);   \
+        READANDCHECK((vec).data(), size);                            \
+        (count_var) += bytes_to_read;                                \
     } while (0)
 
-static void read_HNSW(HNSW* hnsw, IOReader* f) {
+static void read_HNSW(
+        HNSW* hnsw,
+        IOReader* f,
+        const HNSWIndexConfig& config = HNSWIndexConfig()) {
+    if (!config.is_compact && config.is_skip_neighbors) {
+        throw std::invalid_argument(
+                "Skipping neighbors data is not allowed for non-compact HNSW indices.");
+    }
     printf("[read_HNSW - CSR NL v4] Reading metadata & CSR indices (manual offset)...\n");
     uint64_t calculated_offset = 0;
 
     READVECTOR_AND_COUNT(hnsw->assign_probas, calculated_offset, f);
     READVECTOR_AND_COUNT(hnsw->cum_nneighbor_per_level, calculated_offset, f);
     READVECTOR_AND_COUNT(hnsw->levels, calculated_offset, f);
+
     hnsw->n_total_vectors = hnsw->levels.size();
     printf("[read_HNSW NL v4] Read levels vector, size: %zd\n",
            hnsw->levels.size());
 
-    bool compact_flag_read;
-    READ1_AND_COUNT(
-            compact_flag_read, calculated_offset, f);
-    FAISS_THROW_IF_NOT_MSG(
-            compact_flag_read == true, "Expected CSR format flag in file.");
-    hnsw->storage_is_compact = compact_flag_read;
+    if (config.is_compact) {
+        bool compact_flag_read;
+        READ1_AND_COUNT(compact_flag_read, calculated_offset, f);
+        FAISS_THROW_IF_NOT_MSG(
+                compact_flag_read == true, "Expected CSR format flag in file.");
+        hnsw->storage_is_compact = compact_flag_read;
 
-    printf("[read_HNSW NL v4] Reading Compact Storage format indices...\n");
+        printf("[read_HNSW NL v4] Reading Compact Storage format indices...\n");
 
-    READVECTOR_AND_COUNT(hnsw->compact_level_ptr, calculated_offset, f);
-    printf("[read_HNSW NL v4] Read compact_level_ptr, size: %zd\n",
-           hnsw->compact_level_ptr.size());
-    READVECTOR_AND_COUNT(hnsw->compact_node_offsets, calculated_offset, f);
-    printf("[read_HNSW NL v4] Read compact_node_offsets, size: %zd\n",
-           hnsw->compact_node_offsets.size());
-    FAISS_THROW_IF_NOT(
-            hnsw->compact_node_offsets.size() == hnsw->n_total_vectors + 1);
+        READVECTOR_AND_COUNT(hnsw->compact_level_ptr, calculated_offset, f);
+        printf("[read_HNSW NL v4] Read compact_level_ptr, size: %zd\n",
+               hnsw->compact_level_ptr.size());
+        READVECTOR_AND_COUNT(hnsw->compact_node_offsets, calculated_offset, f);
+        printf("[read_HNSW NL v4] Read compact_node_offsets, size: %zd\n",
+               hnsw->compact_node_offsets.size());
+        FAISS_THROW_IF_NOT(
+                hnsw->compact_node_offsets.size() == hnsw->n_total_vectors + 1);
+    } else {
+        printf("[READ_HNSW] Reading Original Storage format...\n");
+        // --- Read Original Storage data ---
+        READVECTOR(hnsw->offsets);
+        // Use the specific read_vector function for MaybeOwnedVector
+        read_vector(hnsw->neighbors, f);
+        printf("[READ_HNSW] Original Storage sizes: offsets=%zd, neighbors=%zd\n",
+               hnsw->offsets.size(),
+               hnsw->neighbors.size());
+    }
 
     READ1_AND_COUNT(hnsw->entry_point, calculated_offset, f);
     READ1_AND_COUNT(hnsw->max_level, calculated_offset, f);
     READ1_AND_COUNT(hnsw->efConstruction, calculated_offset, f);
     READ1_AND_COUNT(hnsw->efSearch, calculated_offset, f);
 
-    int dummy_int;
-    READANDCHECK(&dummy_int, 1);
+    READ1_DUMMY(int)
     calculated_offset += sizeof(int);
 
     printf("[read_HNSW NL v4] Read entry_point: %ld, max_level: %d\n",
@@ -573,12 +581,26 @@ static void read_HNSW(HNSW* hnsw, IOReader* f) {
     READ1_AND_COUNT(storage_fourcc, calculated_offset, f);
     printf("[read_HNSW NL v4] Read storage fourcc: 0x%x\n", storage_fourcc);
 
-    hnsw->neighbors_start_offset =
-            calculated_offset + 37; // 37 is from the header
-    printf("[read_HNSW NL v4] Neighbors data block starts at calculated offset: %" PRIu64
-           "\n",
-           hnsw->neighbors_start_offset);
+    if (config.is_compact) {
+        hnsw->neighbors_start_offset =
+                calculated_offset + 37; // 37 is from the header
+        printf("[read_HNSW NL v4] Neighbors data block starts at calculated offset: %" PRIu64
+               "\n",
+               hnsw->neighbors_start_offset);
 
+        if (config.is_skip_neighbors) {
+            printf("[read_HNSW NL v4] Skipping neighbors data.\n");
+
+            hnsw->neighbors_on_disk = true;
+        } else {
+            printf("[read_HNSW NL v4] Reading neighbors data.\n");
+
+            READVECTOR_AND_COUNT(
+                    hnsw->compact_neighbors_data, calculated_offset, f);
+            printf("[read_HNSW NL v4] Read neighbors data, size: %zd\n",
+                   hnsw->compact_neighbors_data.size());
+        }
+    }
     printf("[read_HNSW NL v4] Finished reading metadata and CSR indices.\n");
 }
 
@@ -745,7 +767,7 @@ int read_old_fmt_hack = 0;
 Index* read_index(
         IOReader* f,
         int io_flags,
-        const char* external_storage_path) {
+        const HNSWIndexConfig& hnsw_config) {
     Index* idx = nullptr;
     uint32_t h;
     READ1(h);
@@ -1189,55 +1211,42 @@ Index* read_index(
             READ1(idx_hnsw_cagra->base_level_only);
             READ1(idx_hnsw_cagra->num_base_level_search_entrypoints);
         }
-        read_HNSW(&idxhnsw->hnsw, f);
+        read_HNSW(&idxhnsw->hnsw, f, hnsw_config);
 
-        if (external_storage_path != nullptr) {
-            if (strcmp(external_storage_path, "/dev/null") == 0) {
-                printf("INFO: Skipping external storage loading.\n");
+        if (hnsw_config.is_recompute) {
+            printf("INFO: Skipping external storage loading, since is_recompute is true.\n");
+            idxhnsw->is_recompute = true;
+        } else if (hnsw_config.external_storage_path != nullptr) {
+            // Load storage from the external file
+            printf("INFO: Loading external storage from: %s\n",
+                   hnsw_config.external_storage_path);
+            // Decide reader type based on io_flags if desired (e.g.,
+            // mmap)
+            std::unique_ptr<IOReader> storage_reader;
+            if ((io_flags & IO_FLAG_MMAP_IFC) == IO_FLAG_MMAP_IFC) {
+                auto owner = std::make_shared<MmappedFileMappingOwner>(
+                        hnsw_config.external_storage_path);
+                storage_reader = std::make_unique<MappedFileIOReader>(owner);
+                printf("INFO: Using MappedFileIOReader for external storage.\n");
             } else {
-                // Load storage from the external file
-                printf("INFO: Loading external storage from: %s\n",
-                       external_storage_path);
-                try {
-                    // Decide reader type based on io_flags if desired (e.g.,
-                    // mmap)
-                    std::unique_ptr<IOReader> storage_reader;
-                    if ((io_flags & IO_FLAG_MMAP_IFC) == IO_FLAG_MMAP_IFC) {
-                        auto owner = std::make_shared<MmappedFileMappingOwner>(
-                                external_storage_path);
-                        storage_reader =
-                                std::make_unique<MappedFileIOReader>(owner);
-                        printf("INFO: Using MappedFileIOReader for external storage.\n");
-                    } else {
-                        storage_reader = std::make_unique<FileIOReader>(
-                                external_storage_path);
-                        printf("INFO: Using FileIOReader for external storage.\n");
-                    }
-
-                    // Recursively call read_index for the storage part, passing
-                    // flags Pass nullptr for external_storage_path in recursive
-                    // call
-                    idxhnsw->storage =
-                            read_index(storage_reader.get(), io_flags, nullptr);
-
-                    if (!idxhnsw->storage) {
-                        FAISS_THROW_FMT(
-                                "Failed to read external storage index from %s",
-                                external_storage_path);
-                    }
-                    printf("INFO: Successfully loaded external storage.\n");
-
-                } catch (const std::exception& e) {
-                    // Clean up partially created index if external load fails
-                    delete idxhnsw;
-                    FAISS_THROW_FMT(
-                            "Error reading external storage from %s: %s",
-                            external_storage_path,
-                            e.what());
-                }
-                // IMPORTANT: We DO NOT read storage from the primary reader 'f'
-                // anymore. 'f' remains positioned after the HNSW graph data.
+                storage_reader = std::make_unique<FileIOReader>(
+                        hnsw_config.external_storage_path);
+                printf("INFO: Using FileIOReader for external storage.\n");
             }
+
+            // Recursively call read_index for the storage part, passing
+            // flags Pass nullptr for external_storage_path in recursive
+            // call
+            idxhnsw->storage = read_index(storage_reader.get(), io_flags);
+
+            if (!idxhnsw->storage) {
+                FAISS_THROW_FMT(
+                        "Failed to read external storage index from %s",
+                        hnsw_config.external_storage_path);
+            }
+            printf("INFO: Successfully loaded external storage.\n");
+            // IMPORTANT: We DO NOT read storage from the primary reader 'f'
+            // anymore. 'f' remains positioned after the HNSW graph data.
 
         } else if (io_flags & IO_FLAG_SKIP_STORAGE) {
             // Original logic for skipping storage from primary reader
@@ -1250,7 +1259,7 @@ Index* read_index(
         } else {
             // Original logic: Read storage sequentially from primary reader 'f'
             // Pass nullptr for external_storage_path in recursive call
-            idxhnsw->storage = read_index(f, io_flags, nullptr);
+            idxhnsw->storage = read_index(f, io_flags);
         }
 
         idxhnsw->own_fields = idxhnsw->storage != nullptr;
@@ -1369,30 +1378,30 @@ Index* read_index(
     return idx;
 }
 
-Index* read_index(FILE* f, int io_flags, const char* external_storage_path) {
+Index* read_index(FILE* f, int io_flags, const HNSWIndexConfig& hnsw_config) {
     if ((io_flags & IO_FLAG_MMAP_IFC) == IO_FLAG_MMAP_IFC) {
         // enable mmap-supporting IOReader
         auto owner = std::make_shared<MmappedFileMappingOwner>(f);
         MappedFileIOReader reader(owner);
-        return read_index(&reader, io_flags, external_storage_path);
+        return read_index(&reader, io_flags, hnsw_config);
     } else {
         FileIOReader reader(f);
-        return read_index(&reader, io_flags, external_storage_path);
+        return read_index(&reader, io_flags, hnsw_config);
     }
 }
 
 Index* read_index(
         const char* fname,
         int io_flags,
-        const char* external_storage_path) {
+        const HNSWIndexConfig& hnsw_config) {
     if ((io_flags & IO_FLAG_MMAP_IFC) == IO_FLAG_MMAP_IFC) {
         // enable mmap-supporting IOReader
         auto owner = std::make_shared<MmappedFileMappingOwner>(fname);
         MappedFileIOReader reader(owner);
-        return read_index(&reader, io_flags, external_storage_path);
+        return read_index(&reader, io_flags, hnsw_config);
     } else {
         FileIOReader reader(fname);
-        Index* idx = read_index(&reader, io_flags, external_storage_path);
+        Index* idx = read_index(&reader, io_flags, hnsw_config);
         return idx;
     }
 }

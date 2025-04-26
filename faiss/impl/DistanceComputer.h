@@ -64,9 +64,19 @@ struct DistanceComputer {
     virtual void distances_batch(
             const std::vector<idx_t>& ids,
             std::vector<float>& distances_out) {
-        // Default implementation: call operator() for each id
-        distances_out.resize(ids.size());
-        for (size_t i = 0; i < ids.size(); i++) {
+        size_t counter = 0;
+        for (counter = 0; counter < ids.size(); counter += 4) {
+            distances_batch_4(
+                    ids[counter],
+                    ids[counter + 1],
+                    ids[counter + 2],
+                    ids[counter + 3],
+                    distances_out[counter],
+                    distances_out[counter + 1],
+                    distances_out[counter + 2],
+                    distances_out[counter + 3]);
+        }
+        for (size_t i = counter; i < ids.size(); i++) {
             distances_out[i] = this->operator()(ids[i]);
         }
     }

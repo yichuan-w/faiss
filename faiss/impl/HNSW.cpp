@@ -151,15 +151,6 @@ size_t HNSW::fetch_neighbors(
             ssize_t bytes_read =
                     pread(graph_fd, buffer.data(), bytes_to_read, disk_offset);
 
-            printf("for node %ld, level %d, length %ld\nneighbors: ",
-                   (long)node_id,
-                   level,
-                   num_neighbors);
-            for (size_t i = 0; i < num_neighbors; i++) {
-                printf("%d ", buffer[i]);
-            }
-            printf("\n");
-
             // Check for errors
             int RTERRNO = errno;
             FAISS_THROW_IF_NOT_FMT(

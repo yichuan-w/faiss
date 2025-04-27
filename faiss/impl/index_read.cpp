@@ -10,7 +10,7 @@
 
 #include <faiss/impl/io_macros.h>
 
-#include <cstdio>
+#include <cstdio> // For ftell, fseek
 #include <cstdlib>
 #include <optional>
 
@@ -581,19 +581,154 @@ static void read_HNSW(
         uint32_t storage_fourcc;
         READ1_AND_COUNT(storage_fourcc, calculated_offset, f);
         printf("[read_HNSW NL v4] Read storage fourcc: 0x%x\n", storage_fourcc);
-        hnsw->neighbors_start_offset =
-                calculated_offset + 37; // 37 is from the header
-        printf("[read_HNSW NL v4] Neighbors data block starts at calculated offset: %" PRIu64
-               "\n",
-               hnsw->neighbors_start_offset);
+
+        // Attempt to determine the reader type
+        FileIOReader* file_reader = dynamic_cast<FileIOReader*>(f);
+        MappedFileIOReader* mmap_reader = dynamic_cast<MappedFileIOReader*>(f);
+
+        // Initialize offset before obtaining it
+        hnsw->neighbors_start_offset = -1; // Default to invalid
+
+        // Get the current position *after* reading storage_fourcc.
+        // This position points to the start of the 8-byte size field for the
+        // neighbors vector.
+        if (file_reader != nullptr) {
+            long current_pos = ftell(file_reader->f);
+            if (current_pos == -1) {
+                int RTERRNO = errno;
+                FAISS_THROW_FMT(
+                        "ftell failed after reading storage_fourcc: %s",
+                        strerror(RTERRNO));
+            }
+            hnsw->neighbors_start_offset = (off_t)current_pos;
+            printf("[read_HNSW NL v4 FIX] Detected FileIOReader. Neighbors size field offset: %ld\n",
+                   (long)hnsw->neighbors_start_offset);
+        } else if (mmap_reader != nullptr) {
+            // For MappedFileIOReader, 'pos' is the relevant offset within the
+            // map
+            hnsw->neighbors_start_offset =
+                    (off_t)mmap_reader->pos; // pos is size_t, cast to off_t
+            printf("[read_HNSW NL v4 FIX] Detected MappedFileIOReader. Neighbors size field relative offset: %zu\n",
+                   mmap_reader->pos);
+        } else {
+            // Handle unexpected reader types if necessary, or assume only these
+            // two
+            printf("[read_HNSW NL v4 FIX] Warning: Unknown IOReader type. Cannot reliably determine neighbor offset.\n");
+            // Optionally: FAISS_THROW_MSG("Unsupported IOReader for HNSW
+            // neighbor offset detection");
+        }
+
+        // Ensure the offset was successfully obtained if using file reader
+        if (file_reader != nullptr) {
+            FAISS_THROW_IF_NOT_FMT(
+                    hnsw->neighbors_start_offset >= 0,
+                    "Failed to obtain valid file offset (ftell result: %ld)",
+                    (long)hnsw->neighbors_start_offset);
+        }
 
         if (config.is_skip_neighbors) {
             printf("[read_HNSW NL v4] Skipping neighbors data.\n");
 
-            hnsw->neighbors_on_disk = true;
-        } else {
-            printf("[read_HNSW NL v4] Reading neighbors data.\n");
+            // Determine the type of reader and handle accordingly
+            FileIOReader* file_reader = dynamic_cast<FileIOReader*>(f);
+            MappedFileIOReader* mmap_reader =
+                    dynamic_cast<MappedFileIOReader*>(f);
 
+            // Set flag that neighbors should be read on-demand
+            hnsw->neighbors_on_disk = true;
+
+            if (file_reader) {
+                // --- FileIOReader case: use file offset + pread ---
+                printf("[read_HNSW NL v4] Using FileIOReader, will read on demand with pread.\n");
+
+                // Set flag that we're using pread (not mmap)
+                hnsw->neighbors_use_mmap = false;
+
+                // Read the size field (8 bytes) to skip past it
+                size_t neighbors_size_field;
+                if ((*f)(&neighbors_size_field, sizeof(size_t), 1) != 1) {
+                    FAISS_THROW_MSG(
+                            "Failed to read neighbors size field while skipping");
+                }
+
+                // Calculate bytes to skip
+                size_t neighbors_bytes =
+                        neighbors_size_field * sizeof(HNSW::storage_idx_t);
+
+                // Skip past the neighbor data
+                if (fseek(file_reader->f, neighbors_bytes, SEEK_CUR) != 0) {
+                    int RTERRNO = errno;
+                    FAISS_THROW_FMT(
+                            "fseek failed to skip %zu bytes of neighbor data: %s",
+                            neighbors_bytes,
+                            strerror(RTERRNO));
+                }
+
+                printf("[read_HNSW NL v4] Skipped %zu bytes of neighbor data.\n",
+                       neighbors_bytes);
+
+            } else if (mmap_reader) {
+                // --- MappedFileIOReader case: use memory pointer ---
+                printf("[read_HNSW NL v4] Using MappedFileIOReader, will access via memory pointer.\n");
+
+                // Set flag that we're using mmap
+                hnsw->neighbors_use_mmap = true;
+
+                // Record current position (pointing to size field) for
+                // debugging
+                hnsw->neighbors_start_offset = mmap_reader->pos;
+
+                // Read the size field (8 bytes) to skip past it
+                size_t neighbors_size_field;
+                if ((*f)(&neighbors_size_field, sizeof(size_t), 1) != 1) {
+                    FAISS_THROW_MSG(
+                            "Failed to read neighbors size field while skipping (mmap)");
+                }
+
+                // Store the memory pointer where neighbors data starts (right
+                // after size field) At this point, pos is positioned at the
+                // start of actual data
+                hnsw->neighbors_mmap_ptr =
+                        (HNSW::storage_idx_t*)((char*)mmap_reader->mmap_owner
+                                                       ->data() +
+                                               mmap_reader->pos);
+
+                printf("[read_HNSW NL v4] Neighbor data starts at mmap offset (relative): %zu, pointer: %p\n",
+                       mmap_reader->pos,
+                       (void*)hnsw->neighbors_mmap_ptr);
+
+                // Calculate bytes to skip and the end position
+                size_t neighbors_bytes =
+                        neighbors_size_field * sizeof(HNSW::storage_idx_t);
+                size_t end_pos = mmap_reader->pos + neighbors_bytes;
+
+                // Check boundary
+                FAISS_THROW_IF_NOT_FMT(
+                        end_pos <= mmap_reader->mmap_owner->size(),
+                        "Attempt to skip past mmap region (current pos %zu, skip %zu, total size %zu)",
+                        mmap_reader->pos,
+                        neighbors_bytes,
+                        mmap_reader->mmap_owner->size());
+
+                // Advance mmap reader's position to skip data
+                mmap_reader->pos = end_pos;
+
+                printf("[read_HNSW NL v4] Advanced mmap reader pos by %zu bytes to %zu.\n",
+                       neighbors_bytes,
+                       mmap_reader->pos);
+
+            } else {
+                // Unsupported reader type
+                FAISS_THROW_MSG(
+                        "Skipping neighbors requires FileIOReader or MappedFileIOReader");
+            }
+
+        } else {
+            printf("[read_HNSW NL v4] Reading neighbors data into memory.\n");
+
+            // Read neighbors into memory as before
+            hnsw->neighbors_on_disk = false;
+            hnsw->neighbors_use_mmap = false;
             READVECTOR_AND_COUNT(
                     hnsw->compact_neighbors_data, calculated_offset, f);
             printf("[read_HNSW NL v4] Read neighbors data, size: %zd\n",

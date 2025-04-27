@@ -71,36 +71,7 @@ size_t HNSW::fetch_neighbors(
         idx_t node_id,
         int level,
         std::vector<storage_idx_t>& buffer) const {
-    size_t begin_idx, end_idx;
-    neighbor_range(node_id, level, &begin_idx, &end_idx);
-
-    if (!neighbors_on_disk) {
-        int node_neighbor_count = 0;
-        if (!storage_is_compact) {
-            for (size_t j = begin_idx; j < end_idx; j++) {
-                if (neighbors[j] < 0)
-                    break;
-
-                // prefetch_L2(vt.visited.data() + neighbors[j]);
-                node_neighbor_count++;
-            }
-            buffer.resize(node_neighbor_count);
-            for (size_t i = 0; i < node_neighbor_count; i++) {
-                buffer[i] = neighbors[i + begin_idx];
-            }
-        } else {
-            node_neighbor_count = end_idx - begin_idx;
-            buffer.resize(node_neighbor_count);
-            for (size_t i = 0; i < node_neighbor_count; i++) {
-                buffer[i] = compact_neighbors_data[i + begin_idx];
-            }
-        }
-        return node_neighbor_count;
-    }
-
-    FAISS_THROW_IF_NOT_MSG(
-            graph_fd != -1,
-            "Graph file descriptor is not valid (file not opened?).");
+    // Basic bounds check for node_id and level
     FAISS_THROW_IF_NOT_FMT(
             node_id >= 0 && (size_t)node_id < levels.size(),
             "fetch_neighbors: node_id %ld out of range [0, %zu)",
@@ -112,42 +83,106 @@ size_t HNSW::fetch_neighbors(
             level,
             max_level);
 
-    // neighbors_on_disk is only valid when the index is compact
+    size_t begin_idx, end_idx;
+    neighbor_range(node_id, level, &begin_idx, &end_idx);
     size_t num_neighbors = end_idx - begin_idx;
+    buffer.resize(num_neighbors);
+
     if (num_neighbors == 0) {
-        buffer.clear();
         return 0;
     }
 
-    off_t disk_offset =
-            (off_t)(neighbors_start_offset + begin_idx * sizeof(storage_idx_t));
-    size_t bytes_to_read = num_neighbors * sizeof(storage_idx_t);
+    if (!neighbors_on_disk) {
+        // Case 1: Neighbors are in memory (either compact_neighbors_data or
+        // original neighbors)
+        if (!storage_is_compact) {
+            // Original storage format
+            size_t count = 0;
+            for (size_t j = begin_idx; j < end_idx; j++) {
+                if (neighbors[j] < 0)
+                    break;
+                buffer[count++] = neighbors[j];
+            }
+            buffer.resize(count);
+            return count;
+        } else {
+            // Compact storage format with data in memory
+            memcpy(buffer.data(),
+                   compact_neighbors_data.data() + begin_idx,
+                   num_neighbors * sizeof(storage_idx_t));
+            return num_neighbors;
+        }
+    } else {
+        // Case 2: Neighbors are either on disk or in mmap region
+        FAISS_THROW_IF_NOT_MSG(
+                storage_is_compact,
+                "Disk/mmap neighbors access requires compact storage format");
 
-    buffer.resize(num_neighbors);
+        if (neighbors_use_mmap) {
+            // Case 2a: Access via memory-mapped region
+            FAISS_THROW_IF_NOT_MSG(
+                    neighbors_mmap_ptr != nullptr,
+                    "neighbors_use_mmap is true but neighbors_mmap_ptr is null");
 
-    ssize_t bytes_read =
-            pread(graph_fd, buffer.data(), bytes_to_read, disk_offset);
+            // Direct memory copy from mapped region
+            memcpy(buffer.data(),
+                   neighbors_mmap_ptr + begin_idx,
+                   num_neighbors * sizeof(storage_idx_t));
 
-    int RTERRNO = errno;
-    FAISS_ASSERT_FMT(
-            bytes_read >= 0,
-            "pread failed for node %ld, level %d at offset %ld. errno=%d (%s)",
-            (long)node_id,
-            level,
-            (long)disk_offset,
-            RTERRNO,
-            strerror(RTERRNO));
+            return num_neighbors;
+        } else {
+            // Case 2b: Access via pread from disk
+            FAISS_THROW_IF_NOT_MSG(
+                    graph_fd != -1,
+                    "Graph file descriptor is not valid (file not opened?)");
+            FAISS_THROW_IF_NOT_MSG(
+                    neighbors_start_offset >= 0,
+                    "Invalid neighbors_start_offset for pread");
 
-    FAISS_ASSERT_FMT(
-            (size_t)bytes_read == bytes_to_read,
-            "Short read for node %ld, level %d at offset %ld. Read %zd bytes, expected %zu",
-            (long)node_id,
-            level,
-            (long)disk_offset,
-            bytes_read,
-            bytes_to_read);
+            // Calculate file offsets
+            // neighbors_start_offset points to the size field (uint64_t/size_t)
+            off_t data_block_start_offset =
+                    neighbors_start_offset + sizeof(size_t);
+            off_t disk_offset = data_block_start_offset +
+                    (off_t)(begin_idx * sizeof(storage_idx_t));
+            size_t bytes_to_read = num_neighbors * sizeof(storage_idx_t);
 
-    return num_neighbors;
+            // Read from disk using pread
+            ssize_t bytes_read =
+                    pread(graph_fd, buffer.data(), bytes_to_read, disk_offset);
+
+            printf("for node %ld, level %d, length %ld\nneighbors: ",
+                   (long)node_id,
+                   level,
+                   num_neighbors);
+            for (size_t i = 0; i < num_neighbors; i++) {
+                printf("%d ", buffer[i]);
+            }
+            printf("\n");
+
+            // Check for errors
+            int RTERRNO = errno;
+            FAISS_THROW_IF_NOT_FMT(
+                    bytes_read >= 0,
+                    "pread failed: node %ld, level %d, offset %ld. errno=%d (%s)",
+                    (long)node_id,
+                    level,
+                    (long)disk_offset,
+                    RTERRNO,
+                    strerror(RTERRNO));
+
+            FAISS_THROW_IF_NOT_FMT(
+                    (size_t)bytes_read == bytes_to_read,
+                    "Short read: node %ld, level %d, offset %ld. Read %zd bytes, expected %zu",
+                    (long)node_id,
+                    level,
+                    (long)disk_offset,
+                    bytes_read,
+                    bytes_to_read);
+
+            return num_neighbors;
+        }
+    }
 }
 
 bool HNSW::load_pq_pruning_data(
@@ -285,6 +320,13 @@ void HNSW::neighbor_range(idx_t no, int layer_no, size_t* begin, size_t* end)
 HNSW::HNSW(int M, int M0) : rng(12345) {
     set_default_probas(M, 1.0 / log(M), M0);
     offsets.push_back(0);
+
+    // Initialize disk/mmap access fields
+    neighbors_on_disk = false;
+    graph_fd = -1;
+    neighbors_start_offset = -1;
+    neighbors_mmap_ptr = nullptr;
+    neighbors_use_mmap = false;
 }
 
 int HNSW::random_level() {
@@ -342,6 +384,17 @@ void HNSW::reset() {
     compact_neighbors_data.clear();
     compact_level_ptr.clear();
     compact_node_offsets.clear();
+
+    // Reset disk/mmap access fields
+    neighbors_on_disk = false;
+    if (graph_fd != -1) {
+        close(graph_fd);
+        graph_fd = -1;
+    }
+    hnsw_index_filename.clear();
+    neighbors_start_offset = -1;
+    neighbors_mmap_ptr = nullptr;
+    neighbors_use_mmap = false;
 }
 
 void HNSW::save_degree_distribution(int level, const char* filename) const {

@@ -160,6 +160,16 @@ struct HNSW {
     int efSearch = 16;
 
     bool neighbors_on_disk = false;
+    std::string hnsw_index_filename; // Used for pread
+    int graph_fd = -1;               // File descriptor for pread
+
+    // --- New members for disk/mmap access ---
+    off_t neighbors_start_offset = -1; // For pread: offset to size field; For
+                                       // mmap: relative offset (debug)
+    storage_idx_t* neighbors_mmap_ptr =
+            nullptr; // For mmap: pointer to neighbor data in memory
+    bool neighbors_use_mmap =
+            false; // Whether to use mmap pointer instead of pread
 
     /// during search: do we check whether the next best distance is good
     /// enough?
@@ -266,12 +276,6 @@ struct HNSW {
     bool load_pq_pruning_data(
             const std::string& pq_pivots_path,
             const std::string& pq_compressed_path);
-
-    // --- ADD File Descriptor and Offset for On-Demand Reading ---
-    std::string hnsw_index_filename; // Store the filename for reopening
-    int graph_fd = -1;               // File descriptor for pread
-    uint64_t neighbors_start_offset =
-            0; // Byte offset where neighbor data starts
 
     // On-demand neighbor fetch method
     size_t fetch_neighbors(

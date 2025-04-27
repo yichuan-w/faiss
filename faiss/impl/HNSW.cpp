@@ -48,6 +48,7 @@ HNSW::~HNSW() {
 }
 
 void HNSW::initialize_graph(const std::string& index_filename) {
+    assert(neighbors_on_disk);
     this->hnsw_index_filename = index_filename;
     if (this->graph_fd != -1) {
         close(this->graph_fd);
@@ -83,11 +84,17 @@ size_t HNSW::fetch_neighbors(
                 // prefetch_L2(vt.visited.data() + neighbors[j]);
                 node_neighbor_count++;
             }
+            buffer.resize(node_neighbor_count);
+            for (size_t i = 0; i < node_neighbor_count; i++) {
+                buffer[i] = neighbors[i + begin_idx];
+            }
         } else {
             node_neighbor_count = end_idx - begin_idx;
+            buffer.resize(node_neighbor_count);
+            for (size_t i = 0; i < node_neighbor_count; i++) {
+                buffer[i] = compact_neighbors_data[i + begin_idx];
+            }
         }
-        buffer = std::vector<storage_idx_t>(
-                neighbors.begin() + begin_idx, neighbors.begin() + end_idx);
         return node_neighbor_count;
     }
 
@@ -1032,7 +1039,7 @@ int search_from_candidates(
     int nstep = 0;
     int neighbors_count = 0;
 
-    std::map<idx_t, float> distance_cache;
+    // std::map<idx_t, float> distance_cache;
 
     while (candidates.size() > 0) {
         // Process nodes based on strategy

@@ -1089,7 +1089,6 @@ int search_from_candidates(
         // Process nodes based on strategy
         std::vector<int> beam_nodes;
         std::vector<float> beam_distances;
-        std::vector<int> neighbor_counts;
         std::map<idx_t, std::vector<idx_t>> beam_fetched_neighbors;
         int total_neighbors = 0;
 
@@ -1113,11 +1112,11 @@ int search_from_candidates(
                     }
                 }
 
-                std::vector<idx_t> current_node_neighbors;
                 size_t node_neighbor_count =
                         hnsw.fetch_neighbors(v0, 0, neighbor_read_buffer);
                 nfetch++;
 
+                std::vector<idx_t> current_node_neighbors;
                 FAISS_ASSERT(node_neighbor_count >= 0);
                 for (size_t i = 0; i < node_neighbor_count; ++i) {
                     if (!vt.get(neighbor_read_buffer[i])) {
@@ -1128,9 +1127,8 @@ int search_from_candidates(
 
                 beam_nodes.push_back(v0);
                 beam_distances.push_back(d0);
-                neighbor_counts.push_back(node_neighbor_count);
+                total_neighbors += current_node_neighbors.size();
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
-                total_neighbors += node_neighbor_count;
             }
         } else {
             for (int b = 0; b < beam_size && candidates.size() > 0; b++) {

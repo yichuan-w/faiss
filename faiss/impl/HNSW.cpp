@@ -1119,11 +1119,10 @@ int search_from_candidates(
                 nfetch++;
 
                 FAISS_ASSERT(node_neighbor_count >= 0);
-                current_node_neighbors.resize(node_neighbor_count);
                 for (size_t i = 0; i < node_neighbor_count; ++i) {
                     if (!vt.get(neighbor_read_buffer[i])) {
-                        current_node_neighbors[i] =
-                                static_cast<idx_t>(neighbor_read_buffer[i]);
+                        current_node_neighbors.push_back(
+                                static_cast<idx_t>(neighbor_read_buffer[i]));
                     }
                 }
 

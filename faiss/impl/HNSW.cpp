@@ -907,7 +907,6 @@ int search_from_candidates(
         const SearchParameters* params,
         const IndexHNSW* hnsw_index) {
     FAISS_THROW_IF_NOT(level == 0);
-    FAISS_THROW_IF_NOT(hnsw.graph_fd != -1);
 
     int nres = nres_in;
     int ndis = 0;

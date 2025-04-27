@@ -886,7 +886,7 @@ void hnsw_search(
                 dis.reset(new ZmqDistanceComputer(index->d, index->metric_type, index->metric_arg));
             } else {
                 // Use standard distance computer
-                dis.reset(index->get_distance_computer());
+                dis.reset(storage_distance_computer(index->storage));
             }
 
 #pragma omp for reduction(+ : n1, n2, ndis, nhops, total_fetches_accum) \

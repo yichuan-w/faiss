@@ -577,11 +577,10 @@ static void read_HNSW(
            (long)hnsw->entry_point,
            hnsw->max_level);
 
-    uint32_t storage_fourcc;
-    READ1_AND_COUNT(storage_fourcc, calculated_offset, f);
-    printf("[read_HNSW NL v4] Read storage fourcc: 0x%x\n", storage_fourcc);
-
     if (config.is_compact) {
+        uint32_t storage_fourcc;
+        READ1_AND_COUNT(storage_fourcc, calculated_offset, f);
+        printf("[read_HNSW NL v4] Read storage fourcc: 0x%x\n", storage_fourcc);
         hnsw->neighbors_start_offset =
                 calculated_offset + 37; // 37 is from the header
         printf("[read_HNSW NL v4] Neighbors data block starts at calculated offset: %" PRIu64

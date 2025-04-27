@@ -136,8 +136,25 @@ void PQPrunerDataLoader::preprocess_query(
         float* query_preprocessed) const {
     if (!initialized)
         return;
+
+    // Calculate L2 norm of the original query vector
+    double norm_sq = 0.0;
     for (size_t d = 0; d < ndims; d++) {
-        query_preprocessed[d] = query[d] - centroid[d];
+        norm_sq += (double)query[d] * query[d];
+    }
+    double norm = std::sqrt(norm_sq);
+
+    // Handle zero norm case (avoid division by zero)
+    if (norm <= 0.0) {
+        norm = 1.0;
+    }
+
+    // First normalize the query vector, then subtract the centroid
+    // This adapts L2-based PQ distance for IP/Cosine search approximation,
+    // assuming the loaded PQ codebook is compatible with this approach
+    for (size_t d = 0; d < ndims; d++) {
+        float normalized_query_d = query[d] / (float)norm;
+        query_preprocessed[d] = normalized_query_d - centroid[d];
     }
 }
 

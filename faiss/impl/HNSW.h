@@ -277,6 +277,8 @@ struct HNSW {
             const std::string& pq_pivots_path,
             const std::string& pq_compressed_path);
 
+    bool pq_loaded = false;
+
     // On-demand neighbor fetch method
     size_t fetch_neighbors(
             idx_t node_id,

@@ -217,6 +217,7 @@ bool HNSW::load_pq_pruning_data(
     delete[] loaded_codes_ptr;
 
     pq_data_loader = loader;
+    pq_loaded = true;
     std::cout << "Successfully loaded data for PQ pruning: " << num_vectors
               << " vectors, " << code_size << " bytes/vector." << std::endl;
     return true;
@@ -1130,6 +1131,8 @@ int search_from_candidates(
                 total_neighbors += current_node_neighbors.size();
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
+            printf("get beam_nodes: %d\n", beam_nodes.size());
+            printf("total_neighbors: %d\n", total_neighbors);
         } else {
             for (int b = 0; b < beam_size && candidates.size() > 0; b++) {
                 float d0 = 0;
@@ -1162,8 +1165,11 @@ int search_from_candidates(
                 }
                 beam_nodes.push_back(v0);
                 beam_distances.push_back(d0);
+                total_neighbors += current_node_neighbors.size();
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
+            printf("get beam_nodes: %d\n", beam_nodes.size());
+            printf("total_neighbors: %d\n", total_neighbors);
         }
 
         // Continue if we couldn't pop any valid nodes
@@ -1215,6 +1221,7 @@ int search_from_candidates(
                     pq_dists_out.data());
             npq += aggregated_count;
 
+            assert(pq_dists_out.size() == unique_new_neighbors.size());
             for (size_t i = 0; i < aggregated_count; i++) {
                 pq_candidate_queue.push(
                         {pq_dists_out[i], unique_new_neighbors[i]});
@@ -1222,9 +1229,8 @@ int search_from_candidates(
 
             // Another worker: select top candidates from PQ queue for exact
             // distance calculation
-            int num_to_select = std::max(1, int(n_new * pq_select_ratio));
-            num_to_select =
-                    std::min(num_to_select, int(pq_candidate_queue.size()));
+            int num_to_select = std::max(
+                    1, int(pq_candidate_queue.size() * pq_select_ratio));
             std::vector<PQCandidate> popped_pq_nodes;
             popped_pq_nodes.reserve(num_to_select);
 

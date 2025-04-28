@@ -1371,8 +1371,8 @@ int search_from_candidates(
                 total_neighbors += current_node_neighbors.size();
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
-            printf("get beam_nodes: %d\n", beam_nodes.size());
-            printf("total_neighbors: %d\n", total_neighbors);
+            // printf("get beam_nodes: %d\n", beam_nodes.size());
+            // printf("total_neighbors: %d\n", total_neighbors);
         } else {
             for (int b = 0; b < beam_size && candidates.size() > 0; b++) {
                 float d0 = 0;
@@ -1408,8 +1408,8 @@ int search_from_candidates(
                 total_neighbors += current_node_neighbors.size();
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
-            printf("get beam_nodes: %d\n", beam_nodes.size());
-            printf("total_neighbors: %d\n", total_neighbors);
+            // printf("get beam_nodes: %d\n", beam_nodes.size());
+            // printf("total_neighbors: %d\n", total_neighbors);
         }
 
         // Continue if we couldn't pop any valid nodes

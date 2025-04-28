@@ -226,22 +226,22 @@ size_t HNSW::fetch_neighbors(
 
             // Check for errors
             if (bytes_copied < 0) {
-            int RTERRNO = errno;
+                int RTERRNO = errno;
                 FAISS_THROW_FMT(
                         "read_direct_and_extract failed: node %ld, level %d, offset %ld. errno=%d (%s)",
-                    (long)node_id,
-                    level,
+                        (long)node_id,
+                        level,
                         (long)desired_offset,
-                    RTERRNO,
-                    strerror(RTERRNO));
+                        RTERRNO,
+                        strerror(RTERRNO));
             }
 
             // Check if we got all the data we expected
             if ((size_t)bytes_copied != desired_bytes) {
                 FAISS_THROW_FMT(
                         "Short copy from read_direct_and_extract: node %ld, level %d, offset %ld. Copied %zd bytes, expected %zu",
-                    (long)node_id,
-                    level,
+                        (long)node_id,
+                        level,
                         (long)desired_offset,
                         bytes_copied,
                         desired_bytes);
@@ -287,7 +287,6 @@ bool HNSW::load_pq_pruning_data(
     }
 
     code_size = codes_per_vector;
-    n_total_vectors = num_vectors;
     pq_codes.resize(num_vectors * code_size);
     memcpy(pq_codes.data(), loaded_codes_ptr, num_vectors * code_size);
     delete[] loaded_codes_ptr;
@@ -1309,7 +1308,7 @@ int search_from_candidates(
                     &v1,
                     1,
                     hnsw.pq_codes.data(),
-                    hnsw.n_total_vectors,
+                    hnsw.levels.size(),
                     hnsw.code_size,
                     pq_code_scratch.data());
 
@@ -1449,7 +1448,7 @@ int search_from_candidates(
                     unique_new_neighbors.data(),
                     n_new,
                     hnsw.pq_codes.data(),
-                    hnsw.n_total_vectors,
+                    hnsw.levels.size(),
                     hnsw.code_size,
                     pq_code_scratch.data());
 
@@ -1527,7 +1526,7 @@ int search_from_candidates(
             break;
         }
     }
-    
+
     // printf("total_neigh_fetch: %d\n", ndis);
 
     if (level == 0) {
@@ -1671,7 +1670,7 @@ HNSWStats greedy_update_nearest(
         size_t valid_neighbor_count = 0;
         for (ssize_t i = 0; i < neighbors_read_count; ++i) {
             storage_idx_t v_storage = neighbor_read_buffer[i];
-            assert(v_storage >= 0 && v_storage < hnsw.n_total_vectors);
+            assert(v_storage >= 0 && v_storage < hnsw.levels.size());
             neighbors_to_process[valid_neighbor_count++] =
                     static_cast<idx_t>(v_storage);
         }

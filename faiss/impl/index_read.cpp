@@ -533,7 +533,6 @@ static void read_HNSW(
     READVECTOR_AND_COUNT(hnsw->cum_nneighbor_per_level, calculated_offset, f);
     READVECTOR_AND_COUNT(hnsw->levels, calculated_offset, f);
 
-    hnsw->n_total_vectors = hnsw->levels.size();
     printf("[read_HNSW NL v4] Read levels vector, size: %zd\n",
            hnsw->levels.size());
 
@@ -553,7 +552,7 @@ static void read_HNSW(
         printf("[read_HNSW NL v4] Read compact_node_offsets, size: %zd\n",
                hnsw->compact_node_offsets.size());
         FAISS_THROW_IF_NOT(
-                hnsw->compact_node_offsets.size() == hnsw->n_total_vectors + 1);
+                hnsw->compact_node_offsets.size() == hnsw->levels.size() + 1);
     } else {
         printf("[READ_HNSW] Reading Original Storage format...\n");
         // --- Read Original Storage data ---

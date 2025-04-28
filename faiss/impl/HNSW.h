@@ -281,7 +281,6 @@ struct HNSW {
 
     std::shared_ptr<PQPrunerDataLoader> pq_data_loader;
     std::vector<uint8_t> pq_codes; // PQ codes of all vectors (N * code_size)
-    size_t n_total_vectors = 0;    // number of vectors
     size_t code_size = 0;          // number of chunks per vector
 
     bool load_pq_pruning_data(

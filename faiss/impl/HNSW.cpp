@@ -302,6 +302,110 @@ bool HNSW::load_pq_pruning_data(
  * HNSW structure implementation
  **************************************************************/
 
+// Minimal, level-0 only, non-compact edge deletion
+void HNSW::delete_random_level0_edges_minimal(float prune_ratio) {
+    // --- Assert assumptions ---
+    FAISS_THROW_IF_NOT_FMT(
+            !storage_is_compact,
+            "Function %s requires non-compact storage",
+            __func__);
+
+    if (prune_ratio == 0) {
+        return; // Nothing to do
+    }
+    if (levels.empty()) {
+        return; // No nodes
+    }
+
+    // --- Step 1: Identify all valid level 0 edge locations ---
+    std::vector<Level0EdgeLocation> candidates;
+    // Simple estimate, could be refined
+    candidates.reserve(levels.size() * nb_neighbors(0));
+
+    for (storage_idx_t node_id = 0; node_id < levels.size(); ++node_id) {
+        // Skip nodes that don't exist at level 0 (shouldn't happen if
+        // levels[node_id] >= 1)
+        if (levels[node_id] <= 0)
+            continue;
+
+        size_t begin, end;
+        neighbor_range(node_id, 0, &begin, &end); // Get level 0 range
+
+        for (size_t idx = begin; idx < end; ++idx) {
+            if (neighbors[idx] != -1) {
+                candidates.emplace_back(node_id, idx);
+            } else {
+                // Found the -1 sentinel, stop searching for this node's level 0
+                // neighbors
+                break;
+            }
+        }
+    }
+
+    // --- Step 2: Shuffle and Select ---
+    if (candidates.empty()) {
+        printf("No valid level 0 edges found to delete.\n");
+        return;
+    }
+
+    size_t actual_num_to_delete = prune_ratio * candidates.size();
+    printf("Found %zd level 0 edges. Attempting to delete %zd.\n",
+           candidates.size(),
+           actual_num_to_delete);
+
+    std::random_device rd;
+    std::default_random_engine engine(rd());
+    std::shuffle(candidates.begin(), candidates.end(), engine);
+
+    // --- Step 3: Delete using "swap with last" ---
+    size_t deleted_count = 0;
+    for (size_t i = 0; i < actual_num_to_delete; ++i) {
+        const auto& loc = candidates[i];
+        storage_idx_t node_id = loc.node_id;
+        size_t index_to_delete = loc.neighbor_array_index;
+
+        // Minimal check: Skip if it somehow already got deleted
+        // if (neighbors[index_to_delete] == -1) {
+        //     continue;
+        // }
+        while (neighbors[index_to_delete] == -1 && index_to_delete > 0) {
+            index_to_delete--;
+        }
+        assert(neighbors[index_to_delete] != -1);
+        size_t begin, end;
+        neighbor_range(node_id, 0, &begin, &end); // Level 0 range
+
+        // Find last valid neighbor index in [begin, end)
+        size_t idx_last_valid = begin; // Initialize, will be overwritten
+        bool found_last = false;
+        for (size_t j = end; j > begin; --j) {
+            if (neighbors[j - 1] != -1) {
+                idx_last_valid = j - 1;
+                found_last = true;
+                break;
+            }
+        }
+
+        // If no valid neighbor found (only possible if list was already all
+        // -1s?) Or if somehow the target index is beyond last valid (should not
+        // happen)
+        if (!found_last || index_to_delete > idx_last_valid) {
+            assert(false);
+        }
+
+        // Swap-and-delete
+        if (index_to_delete == idx_last_valid) {
+            neighbors[index_to_delete] = -1;
+        } else {
+            std::swap(neighbors[index_to_delete], neighbors[idx_last_valid]);
+            neighbors[idx_last_valid] = -1;
+        }
+        deleted_count++;
+    }
+
+    printf("Minimal delete: %zd level 0 edges processed.\n", deleted_count);
+}
+
 int HNSW::nb_neighbors(int layer_no) const {
     FAISS_THROW_IF_NOT(layer_no + 1 < cum_nneighbor_per_level.size());
     return cum_nneighbor_per_level[layer_no + 1] -
@@ -770,6 +874,68 @@ void add_link(
     }
 }
 
+/// add a link between two elements, possibly shrinking the list
+/// of links to make room for it.
+// this is a variant of add_link that prunes the list with 90% probability
+void add_link_pruned(
+        HNSW& hnsw,
+        DistanceComputer& qdis,
+        storage_idx_t src,
+        storage_idx_t dest,
+        int level,
+        bool keep_max_size_level0 = false) {
+    assert(level == 0);
+    size_t begin, end;
+    hnsw.neighbor_range(src, level, &begin, &end);
+
+    int strict_end = end;
+    if (hnsw.neighbors[end - 1] == -1) {
+        // there is enough room, find a slot to add it
+        size_t i = end;
+        while (i > begin) {
+            if (hnsw.neighbors[i - 1] != -1)
+                break;
+            i--;
+        }
+        strict_end = i;
+        if (level == 0 && strict_end - begin < hnsw.ems[src]) {
+            hnsw.neighbors[i] = dest;
+            return;
+        }
+    }
+    // printf("strict_end: %d\n", strict_end);
+
+    // otherwise we let them fight out which to keep
+
+    // copy to resultSet...
+    std::priority_queue<NodeDistCloser> resultSet;
+    resultSet.emplace(qdis.symmetric_dis(src, dest), dest);
+    for (size_t i = begin; i < strict_end; i++) { // HERE WAS THE BUG
+        storage_idx_t neigh = hnsw.neighbors[i];
+        resultSet.emplace(qdis.symmetric_dis(src, neigh), neigh);
+    }
+
+    // printf("end - begin: %zd, strict_end - begin: %zd\n", end - begin,
+    // strict_end - begin);
+    int len = strict_end - begin;
+    len = std::min(len, hnsw.ems[src]);
+    printf("len: %d, ems[src]: %d\n", len, hnsw.ems[src]);
+    // assert (len != 64);
+    // assert (len==8);
+    shrink_neighbor_list(qdis, resultSet, len, keep_max_size_level0);
+
+    // ...and back
+    size_t i = begin;
+    while (resultSet.size()) {
+        hnsw.neighbors[i++] = resultSet.top().id;
+        resultSet.pop();
+    }
+    // they may have shrunk more than just by 1 element
+    while (i < end) {
+        hnsw.neighbors[i++] = -1;
+    }
+}
+
 } // namespace
 
 /// search neighbors on a single level, starting from an entry point
@@ -914,26 +1080,22 @@ void HNSW::add_links_starting_from(
 
     // but we can afford only this many neighbors
     int M = nb_neighbors(level);
-    bool pruning_during_construction = false;
-
-    // Apply pruning during construction with 90% probability
-    int effective_M = M;
-    if (pruning_during_construction) {
-        // Use random number generator to decide whether to prune
-        float r = rng.rand_float();           // Assuming rng is accessible here
-        if (r < 0.9) {                        // 90% probability
-            effective_M = std::max(M / 8, 1); // Reduce to M/8 but at least 1
-        }
-    }
 
     ::faiss::shrink_neighbor_list(
-            ptdis, link_targets, effective_M, keep_max_size_level0);
+            ptdis, link_targets, ems[pt_id], keep_max_size_level0);
 
     std::vector<storage_idx_t> neighbors_to_add;
     neighbors_to_add.reserve(link_targets.size());
+    bool prune_in_add_link = false;
     while (!link_targets.empty()) {
         storage_idx_t other_id = link_targets.top().id;
-        add_link(*this, ptdis, pt_id, other_id, level, keep_max_size_level0);
+        if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
+            add_link_pruned(
+                    *this, ptdis, pt_id, other_id, level, keep_max_size_level0);
+        } else {
+            add_link(
+                    *this, ptdis, pt_id, other_id, level, keep_max_size_level0);
+        }
         neighbors_to_add.push_back(other_id);
         link_targets.pop();
     }
@@ -941,7 +1103,13 @@ void HNSW::add_links_starting_from(
     omp_unset_lock(&locks[pt_id]);
     for (storage_idx_t other_id : neighbors_to_add) {
         omp_set_lock(&locks[other_id]);
-        add_link(*this, ptdis, other_id, pt_id, level, keep_max_size_level0);
+        if (level == 0 && M > ems[other_id] && prune_in_add_link) {
+            add_link_pruned(
+                    *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
+        } else {
+            add_link(
+                    *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
+        }
         omp_unset_lock(&locks[other_id]);
     }
     omp_set_lock(&locks[pt_id]);
@@ -1158,9 +1326,6 @@ int search_from_candidates(
     }
 
     int nstep = 0;
-    int neighbors_count = 0;
-
-    // std::map<idx_t, float> distance_cache;
 
     while (candidates.size() > 0) {
         // Process nodes based on strategy
@@ -1362,6 +1527,8 @@ int search_from_candidates(
             break;
         }
     }
+    
+    // printf("total_neigh_fetch: %d\n", ndis);
 
     if (level == 0) {
         stats.n1++;
@@ -1373,8 +1540,6 @@ int search_from_candidates(
         stats.n_ios = nfetch;
         stats.n_pq_calcs = npq;
     }
-
-    // printf("neighbors count %d\n", neighbors_count);
 
     return nres;
 }

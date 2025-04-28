@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 
 #include <limits>
 #include <memory>
@@ -718,6 +719,17 @@ void hnsw_add_vertices(
         for (int pt_level = hist.size() - 1;
              pt_level >= int(!index_hnsw.init_level0);
              pt_level--) {
+            int M = hnsw.nb_neighbors(pt_level);
+            if (pt_level == 0) {
+                printf("M: %d for level: %d\n", M, pt_level);
+                // assign new vector to ems
+                hnsw.ems = std::vector<int>(ntotal, M);
+            } else {
+                // value set to infinity
+                hnsw.ems = std::vector<int>(
+                        ntotal, std::numeric_limits<int>::max());
+            }
+
             int i0 = i1 - hist[pt_level];
 
             if (verbose) {
@@ -729,6 +741,34 @@ void hnsw_add_vertices(
                 std::swap(order[j], order[j + rng2.rand_int(i1 - j)]);
 
             bool interrupt = false;
+            bool degree_based_prune = false;
+            std::vector<int> degree_distribution;
+            int degree_threshold;
+            if (degree_based_prune) {
+                // Read degree distribution file - contains one degree per line
+                // Line number corresponds to node ID (0-indexed)
+                std::ifstream file(
+                        "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
+                std::string line;
+
+                // Read all degrees into the vector
+                while (std::getline(file, line)) {
+                    degree_distribution.push_back(std::stoi(line));
+                }
+                // Create a copy of the degree distribution to find the
+                // threshold
+                std::vector<int> sorted_degrees = degree_distribution;
+                std::sort(
+                        sorted_degrees.begin(),
+                        sorted_degrees.end(),
+                        std::greater<int>());
+
+                // Find the degree threshold for top 10%
+                int threshold_index =
+                        std::max(0, int(sorted_degrees.size() * 0.03) - 1);
+                degree_threshold = sorted_degrees[threshold_index];
+                printf("Degree threshold: %d\n", degree_threshold);
+            }
 
 #pragma omp parallel if (i1 > i0 + 100)
             {
@@ -746,6 +786,31 @@ void hnsw_add_vertices(
 #pragma omp for schedule(static)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
+                    bool prune = true;
+                    degree_based_prune = true;
+                    if (pt_level == 0 && prune) {
+                        if (!degree_based_prune) {
+                            // printf("i: %d, order[i]: %d\n", i, order[i]);
+                            float r = rng2.rand_float(); // Assuming rng is
+                                                         // accessible here
+                            if (r < 0.95) {               // 90% probability
+                                hnsw.ems[pt_id] = std::max(
+                                        4,
+                                        1); // Reduce to M/8 but at least 1
+                            }
+                        } else {
+                            // get pid degree first and combine with the
+                            // threshold
+                            // TODO: can design a better heruistic here instead of simply cut the top 10%
+                            // let me think about it
+                            int pid_degree = degree_distribution[pt_id];
+                            if (pid_degree < degree_threshold) {
+                                hnsw.ems[pt_id] = std::max(8, 1);
+                            } else {
+                                hnsw.ems[pt_id] = M;
+                            }
+                        }
+                    }
                     dis->set_query(x + (pt_id - n0) * d);
 
                     // cannot break
@@ -792,6 +857,8 @@ void hnsw_add_vertices(
     for (int i = 0; i < ntotal; i++) {
         omp_destroy_lock(&locks[i]);
     }
+
+    // hnsw.delete_random_level0_edges_minimal(0.5);
 }
 
 } // namespace

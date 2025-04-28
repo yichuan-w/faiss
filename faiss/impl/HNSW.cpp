@@ -19,10 +19,13 @@
 #include <faiss/impl/platform_macros.h>
 
 #include <fcntl.h>
+#include <stdlib.h>
 #include <sys/stat.h> // For file size check
 #include <unistd.h>
+#include <algorithm>
 #include <cerrno>
 #include <cinttypes>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -41,6 +44,76 @@
 #endif
 
 namespace faiss {
+
+ssize_t read_direct_and_extract(
+        int fd,
+        void* user_buffer,
+        size_t desired_bytes,
+        off_t desired_offset) {
+    struct stat stat_buf;
+
+    // Get block size for alignment
+    if (fstat(fd, &stat_buf) != 0) {
+        return -1; // errno is set by fstat
+    }
+
+    size_t block_size = stat_buf.st_blksize;
+
+    // Calculate aligned offsets
+    off_t aligned_start_offset = (desired_offset / block_size) * block_size;
+    off_t aligned_end_offset =
+            std::ceil((desired_offset + desired_bytes) / (double)block_size) *
+            block_size;
+    size_t bytes_to_read_aligned = aligned_end_offset - aligned_start_offset;
+
+    // Allocate aligned buffer
+    void* temp_buffer = nullptr;
+    if (posix_memalign(&temp_buffer, block_size, bytes_to_read_aligned) != 0) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    // Seek to the aligned offset
+    if (lseek(fd, aligned_start_offset, SEEK_SET) == -1) {
+        int saved_errno = errno;
+        free(temp_buffer);
+        errno = saved_errno;
+        return -1;
+    }
+
+    // Read aligned data
+    ssize_t actual_bytes_read = read(fd, temp_buffer, bytes_to_read_aligned);
+
+    if (actual_bytes_read < 0) {
+        int saved_errno = errno;
+        free(temp_buffer);
+        errno = saved_errno;
+        return -1;
+    }
+
+    if (actual_bytes_read == 0 && desired_bytes > 0) {
+        // End of file
+        free(temp_buffer);
+        return 0;
+    }
+
+    // Calculate internal offset and bytes to copy
+    size_t internal_offset = desired_offset - aligned_start_offset;
+    size_t bytes_to_copy = std::min(
+            desired_bytes,
+            (size_t)actual_bytes_read > internal_offset
+                    ? (size_t)actual_bytes_read - internal_offset
+                    : 0);
+
+    // Copy the requested portion to user buffer
+    memcpy(user_buffer, (char*)temp_buffer + internal_offset, bytes_to_copy);
+
+    // Free the temporary buffer
+    free(temp_buffer);
+
+    return bytes_to_copy;
+}
+
 HNSW::~HNSW() {
     if (graph_fd != -1) {
         close(graph_fd);
@@ -53,8 +126,8 @@ void HNSW::initialize_graph(const std::string& index_filename) {
     if (this->graph_fd != -1) {
         close(this->graph_fd);
     }
-    this->graph_fd =
-            open(this->hnsw_index_filename.c_str(), O_RDONLY | O_CLOEXEC);
+    this->graph_fd = open(
+            this->hnsw_index_filename.c_str(), O_RDONLY | O_CLOEXEC | O_DIRECT);
     if (this->graph_fd == -1) {
         int RTERRNO = errno;
         FAISS_THROW_FMT(
@@ -141,35 +214,38 @@ size_t HNSW::fetch_neighbors(
 
             // Calculate file offsets
             // neighbors_start_offset points to the size field (uint64_t/size_t)
-            off_t data_block_start_offset =
-                    neighbors_start_offset + sizeof(size_t);
-            off_t disk_offset = data_block_start_offset +
+            off_t desired_offset = neighbors_start_offset + sizeof(size_t) +
                     (off_t)(begin_idx * sizeof(storage_idx_t));
-            size_t bytes_to_read = num_neighbors * sizeof(storage_idx_t);
+            size_t desired_bytes = num_neighbors * sizeof(storage_idx_t);
 
-            // Read from disk using pread
-            ssize_t bytes_read =
-                    pread(graph_fd, buffer.data(), bytes_to_read, disk_offset);
+            // Note: When using this method in a multi-threaded context, access
+            // to graph_fd should be synchronized since lseek+read is not
+            // thread-safe on the same file descriptor.
+            ssize_t bytes_copied = read_direct_and_extract(
+                    graph_fd, buffer.data(), desired_bytes, desired_offset);
 
             // Check for errors
+            if (bytes_copied < 0) {
             int RTERRNO = errno;
-            FAISS_THROW_IF_NOT_FMT(
-                    bytes_read >= 0,
-                    "pread failed: node %ld, level %d, offset %ld. errno=%d (%s)",
+                FAISS_THROW_FMT(
+                        "read_direct_and_extract failed: node %ld, level %d, offset %ld. errno=%d (%s)",
                     (long)node_id,
                     level,
-                    (long)disk_offset,
+                        (long)desired_offset,
                     RTERRNO,
                     strerror(RTERRNO));
+            }
 
-            FAISS_THROW_IF_NOT_FMT(
-                    (size_t)bytes_read == bytes_to_read,
-                    "Short read: node %ld, level %d, offset %ld. Read %zd bytes, expected %zu",
+            // Check if we got all the data we expected
+            if ((size_t)bytes_copied != desired_bytes) {
+                FAISS_THROW_FMT(
+                        "Short copy from read_direct_and_extract: node %ld, level %d, offset %ld. Copied %zd bytes, expected %zu",
                     (long)node_id,
                     level,
-                    (long)disk_offset,
-                    bytes_read,
-                    bytes_to_read);
+                        (long)desired_offset,
+                        bytes_copied,
+                        desired_bytes);
+            }
 
             return num_neighbors;
         }

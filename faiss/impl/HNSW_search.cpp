@@ -435,7 +435,10 @@ int search_from_candidates(
         const float* original_query = qdis.get_query();
 
         query_preprocessed.resize(dim);
-        memcpy(query_preprocessed.data(), original_query, dim * sizeof(float));
+        memcpy(query_preprocessed.data(),
+               original_query,
+               (dim - 1) * sizeof(float));
+        query_preprocessed[dim - 1] = 0;
         hnsw.pq_data_loader->preprocess_query(
                 query_preprocessed.data(), query_preprocessed.data());
         pq_dists_lookup.resize(256 * n_chunks);

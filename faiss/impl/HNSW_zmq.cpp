@@ -416,8 +416,9 @@ void ZmqDistanceComputer::distances_batch(
                             end_time - start_time)
                             .count();
 
-    std::cout << "fetch_distances_zmq took " << duration << " microseconds for "
-              << ids.size() << " nodes" << std::endl;
+    // std::cout << "fetch_distances_zmq took " << duration << " microseconds
+    // for "
+    //           << ids.size() << " nodes" << std::endl;
 
     if (!fetch_success || distances_out.size() != ids.size()) {
         // Use fallback values on error

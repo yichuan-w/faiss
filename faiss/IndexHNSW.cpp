@@ -546,6 +546,9 @@ struct ZmqDistanceComputer : DistanceComputer {
     void distances_batch(
             const std::vector<idx_t>& ids,
             std::vector<float>& distances_out) override {
+        // Start timing the entire function
+        auto start_total = std::chrono::high_resolution_clock::now();
+
         if (ids.empty()) {
             distances_out.clear();
             return;
@@ -556,9 +559,16 @@ struct ZmqDistanceComputer : DistanceComputer {
             node_ids[i] = (uint32_t)ids[i];
         }
 
+        // Time the embedding fetch operation
+        auto start_fetch = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<float>> fetched_embeddings;
         bool fetch_success =
                 fetch_embeddings_zmq(node_ids, fetched_embeddings, ZMQ_PORT);
+        auto end_fetch = std::chrono::high_resolution_clock::now();
+        auto fetch_duration =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                        end_fetch - start_fetch)
+                        .count();
 
         distances_out.resize(ids.size());
 
@@ -574,6 +584,10 @@ struct ZmqDistanceComputer : DistanceComputer {
 
         fetch_count += fetched_embeddings.size();
 
+        // Time the distance computation
+        auto start_compute = std::chrono::high_resolution_clock::now();
+
+        // can use openmp or simd to optimize here
         for (size_t i = 0; i < fetched_embeddings.size(); i++) {
             const std::vector<float>& embedding = fetched_embeddings[i];
             if (embedding.size() != d) {
@@ -590,6 +604,31 @@ struct ZmqDistanceComputer : DistanceComputer {
                 distances_out[i] =
                         fvec_L2sqr(query.data(), embedding.data(), d);
             }
+        }
+        auto end_compute = std::chrono::high_resolution_clock::now();
+        auto compute_duration =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                        end_compute - start_compute)
+                        .count();
+
+        // Calculate total time
+        auto end_total = std::chrono::high_resolution_clock::now();
+        auto total_duration =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                        end_total - start_total)
+                        .count();
+
+        // Log timing information
+        if (false) {
+            //also print fetched_embeddings.size()
+            printf("fetched_embeddings.size() = %zu\n", fetched_embeddings.size());
+
+            printf("distances_batch timing: total=%0.3f ms, fetch=%0.3f ms (%0.1f%%), compute=%0.3f ms (%0.1f%%)\n",
+                   total_duration / 1000.0,
+                   fetch_duration / 1000.0,
+                   100.0 * fetch_duration / total_duration,
+                   compute_duration / 1000.0,
+                   100.0 * compute_duration / total_duration);
         }
     }
 
@@ -786,14 +825,14 @@ void hnsw_add_vertices(
 #pragma omp for schedule(static)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
-                    bool prune = true;
-                    degree_based_prune = true;
+                    bool prune = false;
+                    degree_based_prune = false;
                     if (pt_level == 0 && prune) {
                         if (!degree_based_prune) {
                             // printf("i: %d, order[i]: %d\n", i, order[i]);
                             float r = rng2.rand_float(); // Assuming rng is
                                                          // accessible here
-                            if (r < 0.95) {               // 90% probability
+                            if (r < 0.95) {              // 90% probability
                                 hnsw.ems[pt_id] = std::max(
                                         4,
                                         1); // Reduce to M/8 but at least 1
@@ -801,8 +840,8 @@ void hnsw_add_vertices(
                         } else {
                             // get pid degree first and combine with the
                             // threshold
-                            // TODO: can design a better heruistic here instead of simply cut the top 10%
-                            // let me think about it
+                            // TODO: can design a better heruistic here instead
+                            // of simply cut the top 10% let me think about it
                             int pid_degree = degree_distribution[pt_id];
                             if (pid_degree < degree_threshold) {
                                 hnsw.ems[pt_id] = std::max(8, 1);
@@ -858,7 +897,7 @@ void hnsw_add_vertices(
         omp_destroy_lock(&locks[i]);
     }
 
-    // hnsw.delete_random_level0_edges_minimal(0.5);
+    // hnsw.delete_random_level0_edges_minimal(0.55);
 }
 
 } // namespace
@@ -950,7 +989,8 @@ void hnsw_search(
             std::unique_ptr<DistanceComputer> dis;
             if (index->is_recompute) {
                 // Use ZmqDistanceComputer for recomputation
-                dis.reset(new ZmqDistanceComputer(index->d, index->metric_type, index->metric_arg));
+                dis.reset(new ZmqDistanceComputer(
+                        index->d, index->metric_type, index->metric_arg));
             } else {
                 // Use standard distance computer
                 dis.reset(storage_distance_computer(index->storage));

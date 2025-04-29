@@ -472,29 +472,29 @@ int search_from_candidates(
         }
         vt.set(v1);
 
-        // Add initial candidates to PQ queue if using PQ pruning
-        if (perform_pq_pruning) {
-            pq_code_scratch.resize(hnsw.code_size);
-            pq_dists_out.resize(1);
+        // // Add initial candidates to PQ queue if using PQ pruning
+        // if (perform_pq_pruning) {
+        //     pq_code_scratch.resize(hnsw.code_size);
+        //     pq_dists_out.resize(1);
 
-            size_t aggregated_count = aggregate_pq_codes(
-                    &v1,
-                    1,
-                    hnsw.pq_codes.data(),
-                    hnsw.levels.size(),
-                    hnsw.code_size,
-                    pq_code_scratch.data());
+        //     size_t aggregated_count = aggregate_pq_codes(
+        //             &v1,
+        //             1,
+        //             hnsw.pq_codes.data(),
+        //             hnsw.levels.size(),
+        //             hnsw.code_size,
+        //             pq_code_scratch.data());
 
-            FAISS_ASSERT(aggregated_count == 1);
-            pq_distance_lookup(
-                    pq_code_scratch.data(),
-                    1,
-                    hnsw.pq_data_loader->get_num_chunks(),
-                    pq_dists_lookup.data(),
-                    pq_dists_out.data());
-            npq++;
-            pq_candidate_queue.push({pq_dists_out[0], v1});
-        }
+        //     FAISS_ASSERT(aggregated_count == 1);
+        //     pq_distance_lookup(
+        //             pq_code_scratch.data(),
+        //             1,
+        //             hnsw.pq_data_loader->get_num_chunks(),
+        //             pq_dists_lookup.data(),
+        //             pq_dists_out.data());
+        //     npq++;
+        //     pq_candidate_queue.push({pq_dists_out[0], v1});
+        // }
     }
 
     int nstep = 0;
@@ -541,7 +541,8 @@ int search_from_candidates(
 
                 beam_nodes.push_back(v0);
                 beam_distances.push_back(d0);
-                total_neighbors += current_node_neighbors.size();
+                total_neighbors +=
+                        current_node_neighbors.size() * pq_select_ratio;
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
             // printf("get beam_nodes: %d\n", beam_nodes.size());
@@ -578,7 +579,8 @@ int search_from_candidates(
                 }
                 beam_nodes.push_back(v0);
                 beam_distances.push_back(d0);
-                total_neighbors += current_node_neighbors.size();
+                total_neighbors +=
+                        current_node_neighbors.size() * pq_select_ratio;
                 beam_fetched_neighbors[v0] = std::move(current_node_neighbors);
             }
             // printf("get beam_nodes: %d\n", beam_nodes.size());
@@ -613,6 +615,7 @@ int search_from_candidates(
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
         if (perform_pq_pruning) {
+            bool local_prune = false;
             size_t n_new = unique_new_neighbors.size();
             pq_code_scratch.resize(n_new * hnsw.code_size);
             pq_dists_out.resize(n_new);
@@ -635,33 +638,67 @@ int search_from_candidates(
             npq += aggregated_count;
 
             assert(pq_dists_out.size() == unique_new_neighbors.size());
+            PQCandidateQueue local_pq_indices;
             for (size_t i = 0; i < aggregated_count; i++) {
+                local_pq_indices.push(
+                        {pq_dists_out[i], unique_new_neighbors[i]});
                 pq_candidate_queue.push(
                         {pq_dists_out[i], unique_new_neighbors[i]});
             }
-
-            // Another worker: select top candidates from PQ queue for exact
-            // distance calculation
-            int num_to_select = std::max(
-                    1, int(pq_candidate_queue.size() * pq_select_ratio));
-            std::vector<PQCandidate> popped_pq_nodes;
-            popped_pq_nodes.reserve(num_to_select);
-
-            for (int i = 0; i < num_to_select && !pq_candidate_queue.empty();
-                 i++) {
-                PQCandidate top_pq = pq_candidate_queue.top();
-                pq_candidate_queue.pop();
-
-                if (!vt.get(top_pq.second)) {
-                    nodes_to_compute.push_back(top_pq.second);
-                    vt.set(top_pq.second);
+            if (local_prune) {
+                // Convert priority queue to vector for sorting
+                std::vector<PQCandidate> sorted_candidates;
+                while (!local_pq_indices.empty()) {
+                    sorted_candidates.push_back(local_pq_indices.top());
+                    local_pq_indices.pop();
                 }
-                popped_pq_nodes.push_back(std::move(top_pq));
-            }
 
-            // Push back popped nodes
-            for (const auto& pq_node : popped_pq_nodes) {
-                pq_candidate_queue.push(pq_node);
+                // Sort the vector
+                std::sort(
+                        sorted_candidates.begin(),
+                        sorted_candidates.end(),
+                        [](const PQCandidate& a, const PQCandidate& b) {
+                            return a.first < b.first;
+                        });
+
+                // Choose top pq_select_ratio * sorted_candidates.size() closest
+                // ones
+                size_t num_to_select =
+                        pq_select_ratio * sorted_candidates.size();
+                for (size_t i = 0;
+                     i < num_to_select && i < sorted_candidates.size();
+                     i++) {
+                    nodes_to_compute.push_back(sorted_candidates[i].second);
+                    vt.set(sorted_candidates[i].second);
+                }
+            } else {
+                // Another worker: select top candidates from PQ queue for exact
+                // distance calculation
+                int num_to_select = std::max(
+                        1, int(pq_candidate_queue.size() * pq_select_ratio));
+                std::vector<PQCandidate> popped_pq_nodes;
+                popped_pq_nodes.reserve(num_to_select);
+
+                for (int i = 0;
+                     i < num_to_select && !pq_candidate_queue.empty();
+                     i++) {
+                    PQCandidate top_pq = pq_candidate_queue.top();
+                    pq_candidate_queue.pop();
+
+                    if (!vt.get(top_pq.second)) {
+                        nodes_to_compute.push_back(top_pq.second);
+                        vt.set(top_pq.second);
+                    }
+                    popped_pq_nodes.push_back(std::move(top_pq));
+                }
+
+                // Push back popped nodes
+                for (const auto& pq_node : popped_pq_nodes) {
+                    pq_candidate_queue.push(pq_node);
+                }
+                printf("nodes_to_compute size: %zu\n", nodes_to_compute.size());
+                // print n_new
+                printf("n_new: %zu\n", n_new);
             }
         } else {
             // If not using PQ pruning, process all new neighbors normally

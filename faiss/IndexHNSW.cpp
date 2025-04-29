@@ -196,8 +196,8 @@ void hnsw_add_vertices(
 #pragma omp for schedule(static)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
-                    bool prune = true;
-                    degree_based_prune = true;
+                    bool prune = false;
+                    degree_based_prune = false;
                     if (pt_level == 0 && prune) {
                         if (!degree_based_prune) {
                             // printf("i: %d, order[i]: %d\n", i, order[i]);
@@ -268,7 +268,7 @@ void hnsw_add_vertices(
         omp_destroy_lock(&locks[i]);
     }
 
-    // hnsw.delete_random_level0_edges_minimal(0.5);
+    // hnsw.delete_random_level0_edges_minimal(0.55);
 }
 
 } // namespace

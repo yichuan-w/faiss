@@ -79,7 +79,9 @@ struct HNSW {
                 : node_id(n), neighbor_array_index(idx) {}
     };
 
-    void delete_random_level0_edges_minimal(float prune_ratio = 0.5);
+    void delete_random_level0_edges_minimal(
+            float prune_ratio = 0.5);
+    void merge_nodes(float merge_threshold);
 
     // for now we do only these distances
     using C = CMax<float, int64_t>;

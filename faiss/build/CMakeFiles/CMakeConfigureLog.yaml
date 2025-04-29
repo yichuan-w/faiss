@@ -1,0 +1,917 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt"
+    message: |
+      The system is: Linux - 6.8.0-1024-aws - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/bin/clang 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+      
+      The C compiler identification is Clang, found in:
+        /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/4.0.0/CompilerIdC/a.out
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/bin/clang++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is Clang, found in:
+        /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/4.0.0/CompilerIdCXX/a.out
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_deff6/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_deff6.dir/build.make CMakeFiles/cmTC_deff6.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE'
+        Building C object CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o
+        /usr/bin/clang   -v -MD -MT CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -MF CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o.d -o CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -c /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCCompilerABI.c
+        Ubuntu clang version 14.0.0-1ubuntu1.1
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Candidate multilib: .;@m64
+        Selected multilib: .;@m64
+        Found CUDA installation: /usr/local/cuda, version 
+         (in-process)
+         "/usr/lib/llvm-14/bin/clang" -cc1 -triple x86_64-pc-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=all -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu x86-64 -tune-cpu generic -mllvm -treat-scalable-fixed-error-as-warning -debugger-tuning=gdb -v -fcoverage-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE -resource-dir /usr/lib/llvm-14/lib/clang/14.0.0 -dependency-file CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o.d -MT CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -sys-header-deps -internal-isystem /usr/lib/llvm-14/lib/clang/14.0.0/include -internal-isystem /usr/local/include -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdebug-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE -ferror-limit 19 -fgnuc-version=4.2.1 -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -x c /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCCompilerABI.c
+        clang -cc1 version 14.0.0 based upon LLVM 14.0.0 default target x86_64-pc-linux-gnu
+        ignoring nonexistent directory "/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"
+        ignoring nonexistent directory "/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/lib/llvm-14/lib/clang/14.0.0/include
+         /usr/local/include
+         /usr/include/x86_64-linux-gnu
+         /usr/include
+        End of search list.
+        Linking C executable cmTC_deff6
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_deff6.dir/link.txt --verbose=1
+        Ubuntu clang version 14.0.0-1ubuntu1.1
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Candidate multilib: .;@m64
+        Selected multilib: .;@m64
+        Found CUDA installation: /usr/local/cuda, version 
+         "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_deff6 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib -v CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o
+        GNU ld (GNU Binutils for Ubuntu) 2.38
+        /usr/bin/clang  -v -Wl,-v CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -o cmTC_deff6
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:191 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/lib/llvm-14/lib/clang/14.0.0/include]
+          add: [/usr/local/include]
+          add: [/usr/include/x86_64-linux-gnu]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/lib/llvm-14/lib/clang/14.0.0/include] ==> [/usr/lib/llvm-14/lib/clang/14.0.0/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include/x86_64-linux-gnu] ==> [/usr/include/x86_64-linux-gnu]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/lib/llvm-14/lib/clang/14.0.0/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:227 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE']
+        ignore line: []
+        ignore line: [Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_deff6/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_deff6.dir/build.make CMakeFiles/cmTC_deff6.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE']
+        ignore line: [Building C object CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o]
+        ignore line: [/usr/bin/clang   -v -MD -MT CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -MF CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o.d -o CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -c /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCCompilerABI.c]
+        ignore line: [Ubuntu clang version 14.0.0-1ubuntu1.1]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [Found CUDA installation: /usr/local/cuda  version ]
+        ignore line: [ (in-process)]
+        ignore line: [ "/usr/lib/llvm-14/bin/clang" -cc1 -triple x86_64-pc-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=all -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu x86-64 -tune-cpu generic -mllvm -treat-scalable-fixed-error-as-warning -debugger-tuning=gdb -v -fcoverage-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE -resource-dir /usr/lib/llvm-14/lib/clang/14.0.0 -dependency-file CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o.d -MT CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -sys-header-deps -internal-isystem /usr/lib/llvm-14/lib/clang/14.0.0/include -internal-isystem /usr/local/include -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdebug-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-fLCXQE -ferror-limit 19 -fgnuc-version=4.2.1 -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -x c /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCCompilerABI.c]
+        ignore line: [clang -cc1 version 14.0.0 based upon LLVM 14.0.0 default target x86_64-pc-linux-gnu]
+        ignore line: [ignoring nonexistent directory "/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"]
+        ignore line: [ignoring nonexistent directory "/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/lib/llvm-14/lib/clang/14.0.0/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include/x86_64-linux-gnu]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [Linking C executable cmTC_deff6]
+        ignore line: [/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_deff6.dir/link.txt --verbose=1]
+        ignore line: [Ubuntu clang version 14.0.0-1ubuntu1.1]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [Found CUDA installation: /usr/local/cuda  version ]
+        link line: [ "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_deff6 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib -v CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o]
+          arg [/usr/bin/ld] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_deff6] ==> ignore
+          arg [/lib/x86_64-linux-gnu/Scrt1.o] ==> obj [/lib/x86_64-linux-gnu/Scrt1.o]
+          arg [/lib/x86_64-linux-gnu/crti.o] ==> obj [/lib/x86_64-linux-gnu/crti.o]
+          arg [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/usr/lib/llvm-14/bin/../lib] ==> dir [/usr/lib/llvm-14/bin/../lib]
+          arg [-L/lib] ==> dir [/lib]
+          arg [-L/usr/lib] ==> dir [/usr/lib]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_deff6.dir/CMakeCCompilerABI.c.o] ==> ignore
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+          arg [-lc] ==> lib [c]
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+          arg [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+          arg [/lib/x86_64-linux-gnu/crtn.o] ==> obj [/lib/x86_64-linux-gnu/crtn.o]
+        linker tool for 'C': /usr/bin/ld
+        collapse obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+        collapse obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/usr/lib/llvm-14/bin/../lib] ==> [/usr/lib/llvm-14/lib]
+        collapse library dir [/lib] ==> [/lib]
+        collapse library dir [/usr/lib] ==> [/usr/lib]
+        implicit libs: [gcc;gcc_s;c;gcc;gcc_s]
+        implicit objs: [/lib/x86_64-linux-gnu/Scrt1.o;/lib/x86_64-linux-gnu/crti.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o;/lib/x86_64-linux-gnu/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib64;/lib/x86_64-linux-gnu;/lib64;/usr/lib/x86_64-linux-gnu;/usr/lib/llvm-14/lib;/lib;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/Internal/CMakeDetermineLinkerId.cmake:36 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:264 (cmake_determine_linker_id)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Running the C compiler's linker: "/usr/bin/ld" "-v"
+      GNU ld (GNU Binutils for Ubuntu) 2.38
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_884c1/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_884c1.dir/build.make CMakeFiles/cmTC_884c1.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw'
+        Building CXX object CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o
+        /usr/bin/clang++   -v -MD -MT CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -c /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCXXCompilerABI.cpp
+        Ubuntu clang version 14.0.0-1ubuntu1.1
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Candidate multilib: .;@m64
+        Selected multilib: .;@m64
+        Found CUDA installation: /usr/local/cuda, version 
+         (in-process)
+         "/usr/lib/llvm-14/bin/clang" -cc1 -triple x86_64-pc-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=all -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu x86-64 -tune-cpu generic -mllvm -treat-scalable-fixed-error-as-warning -debugger-tuning=gdb -v -fcoverage-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw -resource-dir /usr/lib/llvm-14/lib/clang/14.0.0 -dependency-file CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/x86_64-linux-gnu/c++/11 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11/backward -internal-isystem /usr/lib/llvm-14/lib/clang/14.0.0/include -internal-isystem /usr/local/include -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdeprecated-macro -fdebug-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw -ferror-limit 19 -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -x c++ /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCXXCompilerABI.cpp
+        clang -cc1 version 14.0.0 based upon LLVM 14.0.0 default target x86_64-pc-linux-gnu
+        ignoring nonexistent directory "/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"
+        ignoring nonexistent directory "/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11
+         /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/x86_64-linux-gnu/c++/11
+         /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11/backward
+         /usr/lib/llvm-14/lib/clang/14.0.0/include
+         /usr/local/include
+         /usr/include/x86_64-linux-gnu
+         /usr/include
+        End of search list.
+        Linking CXX executable cmTC_884c1
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_884c1.dir/link.txt --verbose=1
+        Ubuntu clang version 14.0.0-1ubuntu1.1
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Candidate multilib: .;@m64
+        Selected multilib: .;@m64
+        Found CUDA installation: /usr/local/cuda, version 
+         "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_884c1 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib -v CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o
+        GNU ld (GNU Binutils for Ubuntu) 2.38
+        /usr/bin/clang++  -v -Wl,-v CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_884c1
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:191 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11]
+          add: [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/x86_64-linux-gnu/c++/11]
+          add: [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11/backward]
+          add: [/usr/lib/llvm-14/lib/clang/14.0.0/include]
+          add: [/usr/local/include]
+          add: [/usr/include/x86_64-linux-gnu]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11] ==> [/usr/include/c++/11]
+        collapse include dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/x86_64-linux-gnu/c++/11] ==> [/usr/include/x86_64-linux-gnu/c++/11]
+        collapse include dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11/backward] ==> [/usr/include/c++/11/backward]
+        collapse include dir [/usr/lib/llvm-14/lib/clang/14.0.0/include] ==> [/usr/lib/llvm-14/lib/clang/14.0.0/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include/x86_64-linux-gnu] ==> [/usr/include/x86_64-linux-gnu]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/include/c++/11;/usr/include/x86_64-linux-gnu/c++/11;/usr/include/c++/11/backward;/usr/lib/llvm-14/lib/clang/14.0.0/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:227 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw']
+        ignore line: []
+        ignore line: [Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_884c1/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_884c1.dir/build.make CMakeFiles/cmTC_884c1.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw']
+        ignore line: [Building CXX object CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o]
+        ignore line: [/usr/bin/clang++   -v -MD -MT CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -c /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Ubuntu clang version 14.0.0-1ubuntu1.1]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [Found CUDA installation: /usr/local/cuda  version ]
+        ignore line: [ (in-process)]
+        ignore line: [ "/usr/lib/llvm-14/bin/clang" -cc1 -triple x86_64-pc-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=all -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu x86-64 -tune-cpu generic -mllvm -treat-scalable-fixed-error-as-warning -debugger-tuning=gdb -v -fcoverage-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw -resource-dir /usr/lib/llvm-14/lib/clang/14.0.0 -dependency-file CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/x86_64-linux-gnu/c++/11 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11/backward -internal-isystem /usr/lib/llvm-14/lib/clang/14.0.0/include -internal-isystem /usr/local/include -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdeprecated-macro -fdebug-compilation-dir=/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-XUrYtw -ferror-limit 19 -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -x c++ /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang -cc1 version 14.0.0 based upon LLVM 14.0.0 default target x86_64-pc-linux-gnu]
+        ignore line: [ignoring nonexistent directory "/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"]
+        ignore line: [ignoring nonexistent directory "/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11]
+        ignore line: [ /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/x86_64-linux-gnu/c++/11]
+        ignore line: [ /usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../include/c++/11/backward]
+        ignore line: [ /usr/lib/llvm-14/lib/clang/14.0.0/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include/x86_64-linux-gnu]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [Linking CXX executable cmTC_884c1]
+        ignore line: [/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_884c1.dir/link.txt --verbose=1]
+        ignore line: [Ubuntu clang version 14.0.0-1ubuntu1.1]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [Found CUDA installation: /usr/local/cuda  version ]
+        link line: [ "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_884c1 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib -v CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o]
+          arg [/usr/bin/ld] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_884c1] ==> ignore
+          arg [/lib/x86_64-linux-gnu/Scrt1.o] ==> obj [/lib/x86_64-linux-gnu/Scrt1.o]
+          arg [/lib/x86_64-linux-gnu/crti.o] ==> obj [/lib/x86_64-linux-gnu/crti.o]
+          arg [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/usr/lib/llvm-14/bin/../lib] ==> dir [/usr/lib/llvm-14/bin/../lib]
+          arg [-L/lib] ==> dir [/lib]
+          arg [-L/usr/lib] ==> dir [/usr/lib]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_884c1.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+          arg [/lib/x86_64-linux-gnu/crtn.o] ==> obj [/lib/x86_64-linux-gnu/crtn.o]
+        linker tool for 'CXX': /usr/bin/ld
+        collapse obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+        collapse obj [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/usr/lib/llvm-14/bin/../lib] ==> [/usr/lib/llvm-14/lib]
+        collapse library dir [/lib] ==> [/lib]
+        collapse library dir [/usr/lib] ==> [/usr/lib]
+        implicit libs: [stdc++;m;gcc_s;gcc;c;gcc_s;gcc]
+        implicit objs: [/lib/x86_64-linux-gnu/Scrt1.o;/lib/x86_64-linux-gnu/crti.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o;/lib/x86_64-linux-gnu/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib64;/lib/x86_64-linux-gnu;/lib64;/usr/lib/x86_64-linux-gnu;/usr/lib/llvm-14/lib;/lib;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/Internal/CMakeDetermineLinkerId.cmake:36 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake:264 (cmake_determine_linker_id)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Running the CXX compiler's linker: "/usr/bin/ld" "-v"
+      GNU ld (GNU Binutils for Ubuntu) 2.38
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:250 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:557 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:401 (find_package)"
+    description: "Detecting C OpenMP compiler info"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "OpenMP_COMPILE_RESULT_C_fopenmplibomp"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b8980/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_b8980.dir/build.make CMakeFiles/cmTC_b8980.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX'
+        Building C object CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o
+        /usr/bin/clang   -fopenmp=libomp -MD -MT CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -MF CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o.d -o CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX/OpenMPTryFlag.c
+        Linking C executable cmTC_b8980
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b8980.dir/link.txt --verbose=1
+        Ubuntu clang version 14.0.0-1ubuntu1.1
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Candidate multilib: .;@m64
+        Selected multilib: .;@m64
+        Found CUDA installation: /usr/local/cuda, version 
+         "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_b8980 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -lomp -rpath /usr/lib/llvm-14/lib -lgcc --as-needed -lgcc_s --no-as-needed -lpthread -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o
+        /usr/bin/clang  -fopenmp=libomp -v CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -o cmTC_b8980
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:294 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:557 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:401 (find_package)"
+    message: |
+      Parsed C OpenMP implicit link information from above output:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX']
+        ignore line: []
+        ignore line: [Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b8980/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_b8980.dir/build.make CMakeFiles/cmTC_b8980.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX']
+        ignore line: [Building C object CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o]
+        ignore line: [/usr/bin/clang   -fopenmp=libomp -MD -MT CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -MF CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o.d -o CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-TwcvHX/OpenMPTryFlag.c]
+        ignore line: [Linking C executable cmTC_b8980]
+        ignore line: [/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b8980.dir/link.txt --verbose=1]
+        ignore line: [Ubuntu clang version 14.0.0-1ubuntu1.1]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [Found CUDA installation: /usr/local/cuda  version ]
+        link line: [ "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_b8980 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o -lomp -rpath /usr/lib/llvm-14/lib -lgcc --as-needed -lgcc_s --no-as-needed -lpthread -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o]
+          arg [/usr/bin/ld] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_b8980] ==> ignore
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/usr/lib/llvm-14/bin/../lib] ==> dir [/usr/lib/llvm-14/bin/../lib]
+          arg [-L/lib] ==> dir [/lib]
+          arg [-L/usr/lib] ==> dir [/usr/lib]
+          arg [CMakeFiles/cmTC_b8980.dir/OpenMPTryFlag.c.o] ==> ignore
+          arg [-lomp] ==> lib [omp]
+          arg [-rpath] ==> ignore
+          arg [/usr/lib/llvm-14/lib] ==> ignore
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+          arg [-lpthread] ==> lib [pthread]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/usr/lib/llvm-14/bin/../lib] ==> [/usr/lib/llvm-14/lib]
+        collapse library dir [/lib] ==> [/lib]
+        collapse library dir [/usr/lib] ==> [/usr/lib]
+        implicit libs: [omp;gcc;gcc_s;pthread;c;gcc;gcc_s]
+        implicit objs: []
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib64;/lib/x86_64-linux-gnu;/lib64;/usr/lib/x86_64-linux-gnu;/usr/lib/llvm-14/lib;/lib;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:250 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:557 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:401 (find_package)"
+    description: "Detecting CXX OpenMP compiler info"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "OpenMP_COMPILE_RESULT_CXX_fopenmplibomp"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_0ff55/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_0ff55.dir/build.make CMakeFiles/cmTC_0ff55.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ'
+        Building CXX object CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o
+        /usr/bin/clang++   -fopenmp=libomp -MD -MT CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -MF CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o.d -o CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ/OpenMPTryFlag.cpp
+        Linking CXX executable cmTC_0ff55
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0ff55.dir/link.txt --verbose=1
+        Ubuntu clang version 14.0.0-1ubuntu1.1
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11
+        Candidate multilib: .;@m64
+        Selected multilib: .;@m64
+        Found CUDA installation: /usr/local/cuda, version 
+         "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_0ff55 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -lstdc++ -lm -lomp -rpath /usr/lib/llvm-14/lib -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o
+        /usr/bin/clang++  -fopenmp=libomp -v CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -o cmTC_0ff55
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:294 (message)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:557 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:401 (find_package)"
+    message: |
+      Parsed CXX OpenMP implicit link information from above output:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ']
+        ignore line: []
+        ignore line: [Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_0ff55/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_0ff55.dir/build.make CMakeFiles/cmTC_0ff55.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ']
+        ignore line: [Building CXX object CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o]
+        ignore line: [/usr/bin/clang++   -fopenmp=libomp -MD -MT CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -MF CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o.d -o CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-6c12FQ/OpenMPTryFlag.cpp]
+        ignore line: [Linking CXX executable cmTC_0ff55]
+        ignore line: [/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0ff55.dir/link.txt --verbose=1]
+        ignore line: [Ubuntu clang version 14.0.0-1ubuntu1.1]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [Found CUDA installation: /usr/local/cuda  version ]
+        link line: [ "/usr/bin/ld" -pie -z relro --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_0ff55 /lib/x86_64-linux-gnu/Scrt1.o /lib/x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/llvm-14/bin/../lib -L/lib -L/usr/lib CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o -lstdc++ -lm -lomp -rpath /usr/lib/llvm-14/lib -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/11/crtendS.o /lib/x86_64-linux-gnu/crtn.o]
+          arg [/usr/bin/ld] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_0ff55] ==> ignore
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/usr/lib/llvm-14/bin/../lib] ==> dir [/usr/lib/llvm-14/bin/../lib]
+          arg [-L/lib] ==> dir [/lib]
+          arg [-L/usr/lib] ==> dir [/usr/lib]
+          arg [CMakeFiles/cmTC_0ff55.dir/OpenMPTryFlag.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lomp] ==> lib [omp]
+          arg [-rpath] ==> ignore
+          arg [/usr/lib/llvm-14/lib] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lpthread] ==> lib [pthread]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/bin/../lib/gcc/x86_64-linux-gnu/11/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/usr/lib/llvm-14/bin/../lib] ==> [/usr/lib/llvm-14/lib]
+        collapse library dir [/lib] ==> [/lib]
+        collapse library dir [/usr/lib] ==> [/usr/lib]
+        implicit libs: [stdc++;m;omp;gcc_s;gcc;pthread;c;gcc_s;gcc]
+        implicit objs: []
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib64;/lib/x86_64-linux-gnu;/lib64;/usr/lib/x86_64-linux-gnu;/usr/lib/llvm-14/lib;/lib;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:491 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:631 (_OPENMP_GET_SPEC_DATE)"
+      - "CMakeLists.txt:401 (find_package)"
+    description: "Detecting C OpenMP version"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-5m3lXs"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-5m3lXs"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "OpenMP_SPECTEST_C_"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-5m3lXs'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_aca00/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_aca00.dir/build.make CMakeFiles/cmTC_aca00.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-5m3lXs'
+        Building C object CMakeFiles/cmTC_aca00.dir/OpenMPCheckVersion.c.o
+        /usr/bin/clang   -fopenmp=libomp -MD -MT CMakeFiles/cmTC_aca00.dir/OpenMPCheckVersion.c.o -MF CMakeFiles/cmTC_aca00.dir/OpenMPCheckVersion.c.o.d -o CMakeFiles/cmTC_aca00.dir/OpenMPCheckVersion.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-5m3lXs/OpenMPCheckVersion.c
+        Linking C executable cmTC_aca00
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_aca00.dir/link.txt --verbose=1
+        /usr/bin/clang  -fopenmp=libomp CMakeFiles/cmTC_aca00.dir/OpenMPCheckVersion.c.o -o cmTC_aca00
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-5m3lXs'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:491 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindOpenMP.cmake:631 (_OPENMP_GET_SPEC_DATE)"
+      - "CMakeLists.txt:401 (find_package)"
+    description: "Detecting CXX OpenMP version"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-ivvLYY"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-ivvLYY"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "OpenMP_SPECTEST_CXX_"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-ivvLYY'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_61e87/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_61e87.dir/build.make CMakeFiles/cmTC_61e87.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-ivvLYY'
+        Building CXX object CMakeFiles/cmTC_61e87.dir/OpenMPCheckVersion.cpp.o
+        /usr/bin/clang++   -fopenmp=libomp -MD -MT CMakeFiles/cmTC_61e87.dir/OpenMPCheckVersion.cpp.o -MF CMakeFiles/cmTC_61e87.dir/OpenMPCheckVersion.cpp.o.d -o CMakeFiles/cmTC_61e87.dir/OpenMPCheckVersion.cpp.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-ivvLYY/OpenMPCheckVersion.cpp
+        Linking CXX executable cmTC_61e87
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_61e87.dir/link.txt --verbose=1
+        /usr/bin/clang++  -fopenmp=libomp CMakeFiles/cmTC_61e87.dir/OpenMPCheckVersion.cpp.o -o cmTC_61e87
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-ivvLYY'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CheckFunctionExists.cmake:93 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindBLAS.cmake:379 (check_function_exists)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindBLAS.cmake:423 (check_blas_libraries)"
+      - "CMakeLists.txt:432 (find_package)"
+    checks:
+      - "Looking for sgemm_"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-nn7OE7"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-nn7OE7"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "BLAS_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-nn7OE7'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_dffff/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_dffff.dir/build.make CMakeFiles/cmTC_dffff.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-nn7OE7'
+        Building C object CMakeFiles/cmTC_dffff.dir/CheckFunctionExists.c.o
+        /usr/bin/clang   -DCHECK_FUNCTION_EXISTS=sgemm_ -MD -MT CMakeFiles/cmTC_dffff.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_dffff.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_dffff.dir/CheckFunctionExists.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-nn7OE7/CheckFunctionExists.c
+        Linking C executable cmTC_dffff
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_dffff.dir/link.txt --verbose=1
+        /usr/bin/ld: CMakeFiles/cmTC_dffff.dir/CheckFunctionExists.c.o: in function `main':
+        CheckFunctionExists.c:(.text+0x17): undefined reference to `sgemm_'
+        clang: error: linker command failed with exit code 1 (use -v to see invocation)
+        /usr/bin/clang  -DCHECK_FUNCTION_EXISTS=sgemm_ CMakeFiles/cmTC_dffff.dir/CheckFunctionExists.c.o -o cmTC_dffff
+        gmake[1]: *** [CMakeFiles/cmTC_dffff.dir/build.make:103: cmTC_dffff] Error 1
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-nn7OE7'
+        gmake: *** [Makefile:134: cmTC_dffff/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CheckCSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindThreads.cmake:97 (check_c_source_compiles)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindBLAS.cmake:477 (find_package)"
+      - "CMakeLists.txt:432 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-eJfPu8"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-eJfPu8"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-eJfPu8'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_5fa96/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_5fa96.dir/build.make CMakeFiles/cmTC_5fa96.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-eJfPu8'
+        Building C object CMakeFiles/cmTC_5fa96.dir/src.c.o
+        /usr/bin/clang -DCMAKE_HAVE_LIBC_PTHREAD   -MD -MT CMakeFiles/cmTC_5fa96.dir/src.c.o -MF CMakeFiles/cmTC_5fa96.dir/src.c.o.d -o CMakeFiles/cmTC_5fa96.dir/src.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-eJfPu8/src.c
+        Linking C executable cmTC_5fa96
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5fa96.dir/link.txt --verbose=1
+        /usr/bin/clang CMakeFiles/cmTC_5fa96.dir/src.c.o -o cmTC_5fa96
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-eJfPu8'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CheckFunctionExists.cmake:93 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindBLAS.cmake:379 (check_function_exists)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindBLAS.cmake:673 (check_blas_libraries)"
+      - "CMakeLists.txt:432 (find_package)"
+    checks:
+      - "Looking for sgemm_"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-cTYyea"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-cTYyea"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "BLAS_mkl_intel_lp64_deps_mkl_intel_thread_deps_mkl_core_deps_iomp5_deps_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-cTYyea'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_0c939/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_0c939.dir/build.make CMakeFiles/cmTC_0c939.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-cTYyea'
+        Building C object CMakeFiles/cmTC_0c939.dir/CheckFunctionExists.c.o
+        /usr/bin/clang   -DCHECK_FUNCTION_EXISTS=sgemm_ -MD -MT CMakeFiles/cmTC_0c939.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_0c939.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_0c939.dir/CheckFunctionExists.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-cTYyea/CheckFunctionExists.c
+        Linking C executable cmTC_0c939
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0c939.dir/link.txt --verbose=1
+        /usr/bin/clang  -DCHECK_FUNCTION_EXISTS=sgemm_ CMakeFiles/cmTC_0c939.dir/CheckFunctionExists.c.o -o cmTC_0c939  /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so /usr/lib/x86_64-linux-gnu/libmkl_intel_thread.so /usr/lib/x86_64-linux-gnu/libmkl_core.so /usr/lib/x86_64-linux-gnu/libiomp5.so -lm -ldl
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-cTYyea'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/CheckFunctionExists.cmake:93 (try_compile)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindLAPACK.cmake:220 (check_function_exists)"
+      - "/home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/share/cmake-4.0/Modules/FindLAPACK.cmake:399 (check_lapack_libraries)"
+      - "CMakeLists.txt:439 (find_package)"
+    checks:
+      - "Looking for cheev_"
+    directories:
+      source: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-A6DVBe"
+      binary: "/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-A6DVBe"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_C_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "LAPACK_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-A6DVBe'
+        
+        Run Build Command(s): /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_44f30/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_44f30.dir/build.make CMakeFiles/cmTC_44f30.dir/build
+        gmake[1]: Entering directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-A6DVBe'
+        Building C object CMakeFiles/cmTC_44f30.dir/CheckFunctionExists.c.o
+        /usr/bin/clang   -DCHECK_FUNCTION_EXISTS=cheev_ -MD -MT CMakeFiles/cmTC_44f30.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_44f30.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_44f30.dir/CheckFunctionExists.c.o -c /home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-A6DVBe/CheckFunctionExists.c
+        Linking C executable cmTC_44f30
+        /home/ubuntu/Power-RAG/.venv/lib/python3.10/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_44f30.dir/link.txt --verbose=1
+        /usr/bin/clang  -DCHECK_FUNCTION_EXISTS=cheev_ CMakeFiles/cmTC_44f30.dir/CheckFunctionExists.c.o -o cmTC_44f30  /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so /usr/lib/x86_64-linux-gnu/libmkl_intel_thread.so /usr/lib/x86_64-linux-gnu/libmkl_core.so /usr/lib/x86_64-linux-gnu/libiomp5.so -lm -ldl -lm -ldl
+        gmake[1]: Leaving directory '/home/ubuntu/Power-RAG/faiss/faiss/build/CMakeFiles/CMakeScratch/TryCompile-A6DVBe'
+        
+      exitCode: 0
+...

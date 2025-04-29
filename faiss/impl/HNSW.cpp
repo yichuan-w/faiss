@@ -40,6 +40,10 @@ namespace faiss {
 /**************************************************************
  * HNSW structure implementation
  **************************************************************/
+// merge nodes
+void HNSW::merge_nodes(float merge_threshold) {
+    // only merge nodes in the last layer
+}
 
 // Minimal, level-0 only, non-compact edge deletion
 void HNSW::delete_random_level0_edges_minimal(float prune_ratio) {

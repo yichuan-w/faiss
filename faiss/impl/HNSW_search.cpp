@@ -118,8 +118,14 @@ void HNSW::initialize_graph(const std::string& index_filename) {
     if (this->graph_fd != -1) {
         close(this->graph_fd);
     }
+#ifdef __linux__
     this->graph_fd = open(
             this->hnsw_index_filename.c_str(), O_RDONLY | O_CLOEXEC | O_DIRECT);
+#else
+    this->graph_fd =
+            open(this->hnsw_index_filename.c_str(), O_RDONLY | O_CLOEXEC);
+#endif
+
     if (this->graph_fd == -1) {
         int RTERRNO = errno;
         FAISS_THROW_FMT(

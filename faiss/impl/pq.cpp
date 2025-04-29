@@ -1,5 +1,7 @@
 #include "pq.h"
+#ifdef __linux__
 #include <xmmintrin.h> // For _mm_prefetch
+#endif
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -209,9 +211,11 @@ void pq_distance_lookup(
     memset(dists_out, 0, n_pts * sizeof(float));
     for (size_t chunk = 0; chunk < n_chunks; chunk++) {
         const float* chunk_dists = pq_dists_lookup_table + 256 * chunk;
+#ifdef __linux__
         if (chunk < n_chunks - 1) {
             _mm_prefetch((const char*)(chunk_dists + 256), _MM_HINT_T0);
         }
+#endif
         for (size_t idx = 0; idx < n_pts; idx++) {
             uint8_t pq_centerid = aggregated_codes[idx * n_chunks + chunk];
             dists_out[idx] += chunk_dists[pq_centerid];

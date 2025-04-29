@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <memory>
 #include <queue>
 #include <unordered_set>
 #include <vector>

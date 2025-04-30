@@ -13,7 +13,7 @@ import subprocess
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(os.path.join(project_root, "demo"))
-from config import SCALING_OUT_DIR, get_example_path, TASK_CONFIGS
+from config import SCALING_OUT_DIR, get_example_path, TASK_CONFIGS, get_embedding_path
 sys.path.append(project_root)
 from contriever.src.contriever import Contriever, load_retriever
 
@@ -21,17 +21,25 @@ M = 32
 efConstruction = 256
 K_NEIGHBORS = 3
 
+# Original configuration (commented out)
+# DB_EMBEDDING_FILE = "/opt/dlami/nvme/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki/1-shards/passages_00.pkl"
+# INDEX_SAVING_FILE = "/opt/dlami/nvme/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki/1-shards/indices"
 
-DB_EMBEDDING_FILE = "/opt/dlami/nvme/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki/1-shards/passages_00.pkl"
-INDEX_SAVING_FILE = "/opt/dlami/nvme/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki/1-shards/indices"
+# New configuration using DPR
+DOMAIN_NAME = "dpr"
+EMBEDDER_NAME = "facebook/contriever-msmarco"
 TASK_NAME = "nq"
-EMBEDDER_MODEL_NAME = "facebook/contriever-msmarco"
 MAX_QUERIES_TO_LOAD = 1000
 QUERY_ENCODING_BATCH_SIZE = 64
 
-# 1M samples
-print(f"Loading embeddings from {DB_EMBEDDING_FILE}...")
-with open(DB_EMBEDDING_FILE, 'rb') as f:
+# Get the embedding path using the function from config
+embed_path = get_embedding_path(DOMAIN_NAME, EMBEDDER_NAME, 0)
+INDEX_SAVING_FILE = os.path.join(os.path.dirname(embed_path), "indices")
+os.makedirs(INDEX_SAVING_FILE, exist_ok=True)
+
+# Load embeddings
+print(f"Loading embeddings from {embed_path}...")
+with open(embed_path, 'rb') as f:
     data = pickle.load(f)
 
 xb = data[1]
@@ -62,7 +70,7 @@ print(f"Loaded {len(query_texts)} query texts.")
 print("\nInitializing retriever model for encoding queries...")
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
-model, tokenizer, _ = load_retriever(EMBEDDER_MODEL_NAME)
+model, tokenizer, _ = load_retriever(EMBEDDER_NAME)
 model.to(device)
 model.eval() # Set to evaluation mode
 print("Retriever model loaded.")
@@ -104,7 +112,7 @@ def embed_queries(queries, model, tokenizer, model_name_or_path, per_gpu_batch_s
     return embeddings
 
 print(f"\nEncoding {len(query_texts)} queries (batch size: {QUERY_ENCODING_BATCH_SIZE})...")
-xq_full = embed_queries(query_texts, model, tokenizer, EMBEDDER_MODEL_NAME, per_gpu_batch_size=QUERY_ENCODING_BATCH_SIZE)
+xq_full = embed_queries(query_texts, model, tokenizer, EMBEDDER_NAME, per_gpu_batch_size=QUERY_ENCODING_BATCH_SIZE)
 
 # Ensure float32 for Faiss compatibility after encoding
 if xq_full.dtype != np.float32:
@@ -117,18 +125,15 @@ print(f"Encoded queries (xq_full), shape: {xq_full.shape}, dtype: {xq_full.dtype
 if xq_full.shape[1] != d:
      raise ValueError(f"Query embedding dimension ({xq_full.shape[1]}) does not match database dimension ({d})")
 
-# recall_idx = []
-
-# print("\nBuilding FlatIP index for ground truth...")
-# index_flat = faiss.IndexFlatIP(d)  # Use Inner Product
-# index_flat.add(xb)
-# print(f"Searching FlatIP index with {MAX_QUERIES_TO_LOAD} queries (k={K_NEIGHBORS})...")
-# D_flat, recall_idx_flat = index_flat.search(xq_full, k=K_NEIGHBORS)
-
-# print(recall_idx_flat)
+# Build flat index for ground truth
+print("\nBuilding FlatIP index for ground truth...")
+index_flat = faiss.IndexFlatIP(d)  # Use Inner Product
+index_flat.add(xb)
+print(f"Searching FlatIP index with {len(xq_full)} queries (k={K_NEIGHBORS})...")
+D_flat, recall_idx_flat = index_flat.search(xq_full, k=K_NEIGHBORS)
 
 # Create a specific directory for this index configuration
-index_dir = f"{INDEX_SAVING_FILE}/99_4_degree_based_hnsw_IP_M{M}_efC{efConstruction}"
+index_dir = f"{INDEX_SAVING_FILE}/dpr_hnsw_IP_M{M}_efC{efConstruction}"
 os.makedirs(index_dir, exist_ok=True)
 index_filename = f"{index_dir}/index.faiss"
 
@@ -170,30 +175,20 @@ plot_output_path = f"{index_dir}/degree_distribution.png"
 print(f"Generating degree distribution plot to {plot_output_path}...")
 try:
     subprocess.run(
-        ["python", "/home/ubuntu/Power-RAG/utils/plot_degree_distribution.py", distribution_filename, "-o", plot_output_path],
+        ["python", f"{project_root}/utils/plot_degree_distribution.py", distribution_filename, "-o", plot_output_path],
         check=True
     )
     print(f"Degree distribution plot saved to {plot_output_path}")
 except subprocess.CalledProcessError as e:
     print(f"Error generating degree distribution plot: {e}")
 except FileNotFoundError:
-    print("Warning: plot_degree_distribution.py script not found in current directory")
+    print("Warning: plot_degree_distribution.py script not found in specified path")
 
 print('Searching HNSW index...')
 
-
-
-# for efSearch in [2, 4, 8, 16, 32, 64,128,256,512,1024]:
-#     print(f'*************efSearch: {efSearch}*************')
-#     for i in range(10):
-#         index.hnsw.efSearch = efSearch
-#         D, I = index.search(xq_full[i:i+1], K_NEIGHBORS)
-# exit()
-
-
 recall_result_file = f"{index_dir}/recall_result.txt"
 with open(recall_result_file, 'w') as f:
-    for efSearch in [2, 4, 8, 16, 32, 64,128,256,512,1024]:
+    for efSearch in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         index.hnsw.efSearch = efSearch
         # calculate the time of searching
         start_time = time.time()
@@ -201,11 +196,9 @@ with open(recall_result_file, 'w') as f:
         D, I = index.search(xq_full, K_NEIGHBORS)
         end_time = time.time()
         print(f'time: {end_time - start_time}')
-        # print(I)
 
-        # calculate the recall using the flat index the formula:
-        # recall = sum(recall_idx == recall_idx_flat) / len(recall_idx)
-        recall=[]
+        # calculate the recall using the flat index
+        recall = []
         for i in range(len(I)):
             acc = 0
             for j in range(len(I[i])):

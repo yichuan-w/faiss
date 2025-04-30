@@ -151,14 +151,16 @@ void hnsw_add_vertices(
                 std::swap(order[j], order[j + rng2.rand_int(i1 - j)]);
 
             bool interrupt = false;
-            bool degree_based_prune = false;
+            bool degree_based_prune = true;
             std::vector<int> degree_distribution;
             int degree_threshold;
             if (degree_based_prune) {
                 // Read degree distribution file - contains one degree per line
                 // Line number corresponds to node ID (0-indexed)
                 std::ifstream file(
-                        "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
+                        "/opt/dlami/nvme/scaling_out/indices/rpj_wiki/facebook/contriever-msmarco/hnsw/degree_distribution.txt");
+                // std::ifstream file(
+                //         "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
                 std::string line;
 
                 // Read all degrees into the vector
@@ -196,8 +198,7 @@ void hnsw_add_vertices(
 #pragma omp for schedule(static)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
-                    bool prune = false;
-                    degree_based_prune = false;
+                    bool prune = true;
                     if (pt_level == 0 && prune) {
                         if (!degree_based_prune) {
                             // printf("i: %d, order[i]: %d\n", i, order[i]);
@@ -215,7 +216,7 @@ void hnsw_add_vertices(
                             // of simply cut the top 10% let me think about it
                             int pid_degree = degree_distribution[pt_id];
                             if (pid_degree < degree_threshold) {
-                                hnsw.ems[pt_id] = std::max(8, 1);
+                                hnsw.ems[pt_id] = std::max(4, 1);
                             } else {
                                 hnsw.ems[pt_id] = M;
                             }

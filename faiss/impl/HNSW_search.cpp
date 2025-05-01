@@ -617,12 +617,14 @@ int search_from_candidates(
         std::vector<idx_t> unique_new_neighbors(
                 all_new_neighbors_set.begin(), all_new_neighbors_set.end());
         std::vector<idx_t> nodes_to_compute;
+        size_t n_new = unique_new_neighbors.size();
+
+        
 
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
         if (perform_pq_pruning) {
             bool local_prune = false;
-            size_t n_new = unique_new_neighbors.size();
             pq_code_scratch.resize(n_new * hnsw.code_size);
             pq_dists_out.resize(n_new);
 
@@ -738,6 +740,7 @@ int search_from_candidates(
         ndis += nodes_to_compute.size();
 
         nstep += beam_nodes.size();
+        // printf("nstep: %d\n", nstep);
         if (!do_dis_check && nstep > efSearch) {
             break;
         }

@@ -465,7 +465,8 @@ int search_from_candidates(
             std::vector<PQCandidate>,
             std::greater<PQCandidate>>;
     PQCandidateQueue pq_candidate_queue;
-
+    std::set<PQCandidate> pq_candidate_set;
+    // set the order of the pq_candidate_set, the smallest distance is the first
     C::T threshold = res.threshold;
     for (int i = 0; i < candidates.size(); i++) {
         idx_t v1 = candidates.ids[i];
@@ -621,8 +622,6 @@ int search_from_candidates(
         std::vector<idx_t> nodes_to_compute;
         size_t n_new = unique_new_neighbors.size();
 
-        
-
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
         if (perform_pq_pruning) {
@@ -650,10 +649,16 @@ int search_from_candidates(
             assert(pq_dists_out.size() == unique_new_neighbors.size());
             PQCandidateQueue local_pq_indices;
             for (size_t i = 0; i < aggregated_count; i++) {
+
+                assert(!vt.get(unique_new_neighbors[i]));
                 local_pq_indices.push(
                         {pq_dists_out[i], unique_new_neighbors[i]});
                 pq_candidate_queue.push(
                         {pq_dists_out[i], unique_new_neighbors[i]});
+                pq_candidate_set.insert(
+                        {pq_dists_out[i], unique_new_neighbors[i]});
+                // printf("pq_dists_out[i]: %f\n", pq_dists_out[i]);
+                // printf("unique_new_neighbors[i]: %ld\n", unique_new_neighbors[i]);
             }
             if (local_prune) {
                 // Convert priority queue to vector for sorting
@@ -688,31 +693,49 @@ int search_from_candidates(
                         1, int(pq_candidate_queue.size() * pq_select_ratio));
                 std::vector<PQCandidate> popped_pq_nodes;
                 popped_pq_nodes.reserve(num_to_select);
+                bool send_neigh_times_ratio = false;
+                if (send_neigh_times_ratio) {
+                    num_to_select = std::max(1, int(n_new * pq_select_ratio));
 
-                for (int i = 0;
-                     i < num_to_select && !pq_candidate_queue.empty();
-                     i++) {
-                    PQCandidate top_pq = pq_candidate_queue.top();
-                    pq_candidate_queue.pop();
-
-                    if (!vt.get(top_pq.second)) {
+                    for (int i = 0;
+                         i < num_to_select && !pq_candidate_set.empty();
+                         i++) {
+                        PQCandidate top_pq = *pq_candidate_set.begin();
+                        pq_candidate_set.erase(pq_candidate_set.begin());
+                        FAISS_THROW_IF_NOT_FMT(
+                                !vt.get(top_pq.second),
+                                "Node %ld already visited but appeared in PQ candidate queue. This suggests a duplicate entry or incorrect visited table state.",
+                                (long)top_pq.second);
                         nodes_to_compute.push_back(top_pq.second);
                         vt.set(top_pq.second);
                     }
-                    popped_pq_nodes.push_back(std::move(top_pq));
-                }
+                } else {
+                    for (int i = 0;
+                         i < num_to_select && !pq_candidate_queue.empty();
+                         i++) {
+                        PQCandidate top_pq = pq_candidate_queue.top();
+                        pq_candidate_queue.pop();
 
-                // Push back popped nodes
-                for (const auto& pq_node : popped_pq_nodes) {
-                    pq_candidate_queue.push(pq_node);
+                        if (!vt.get(top_pq.second)) {
+                            nodes_to_compute.push_back(top_pq.second);
+                            vt.set(top_pq.second);
+                        }
+                        popped_pq_nodes.push_back(std::move(top_pq));
+                    }
+
+                    // Push back popped nodes
+                    for (const auto& pq_node : popped_pq_nodes) {
+                        pq_candidate_queue.push(pq_node);
+                    }
+                    // printf("nodes_to_compute size: %zu\n",
+                    // nodes_to_compute.size()); print n_new printf("n_new:
+                    // %zu\n", n_new);
                 }
-                printf("nodes_to_compute size: %zu\n", nodes_to_compute.size());
-                // print n_new
-                printf("n_new: %zu\n", n_new);
             }
         } else {
             // If not using PQ pruning, process all new neighbors normally
             for (idx_t v1 : unique_new_neighbors) {
+                assert(!vt.get(v1));
                 if (!vt.get(v1)) {
                     nodes_to_compute.push_back(v1);
                     vt.set(v1);

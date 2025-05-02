@@ -1,8 +1,10 @@
 #pragma once
 
+#include <sys/types.h> // For off_t
 #include <cassert>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <faiss/Index.h>
@@ -10,9 +12,20 @@
 #include <faiss/impl/FaissAssert.h>
 #include <faiss/utils/distances.h>
 namespace faiss {
+void setup_experimental_top_degree_disk_read(
+        const std::string& degree_path,
+        float top_percent,
+        const std::string& storage_path,
+        off_t data_offset,
+        idx_t ntotal);
+
+float read_disk_and_compute_local_ip(idx_t i, size_t d, const float* query);
+
+inline int fetch_disk_cache_counts = 0;
+
 struct ZmqDistanceComputer : DistanceComputer {
     size_t d;
-    const int ZMQ_PORT = 5555;
+    const int ZMQ_PORT = 5557;
     MetricType metric_type;
     float metric_arg;
     const Index* storage;
@@ -55,7 +68,6 @@ struct ZmqDistanceComputer : DistanceComputer {
         FAISS_THROW_IF_NOT(storage_dc_orig && storage_dc_search);
         reset_fetch_count(); // Initialize count
     }
-
     size_t get_fetch_count() const override {
         return fetch_count;
     }
@@ -65,6 +77,7 @@ struct ZmqDistanceComputer : DistanceComputer {
     }
 
     float operator()(idx_t i) override {
+        // TODO: should apply disk_cache
         const float* vec_zmq = get_vector_zmq(i);
         if (!vec_zmq)
             return (metric_type == METRIC_INNER_PRODUCT)
@@ -76,6 +89,7 @@ struct ZmqDistanceComputer : DistanceComputer {
             return fvec_L2sqr(query.data(), vec_zmq, d);
         }
     }
+
     float symmetric_dis(idx_t i, idx_t j) override {
         const float* vec_i_zmq = get_vector_zmq(i);
         const float* vec_j_zmq = get_vector_zmq(j);

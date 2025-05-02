@@ -379,6 +379,8 @@ int search_from_candidates(
         const IndexHNSW* hnsw_index) {
     FAISS_THROW_IF_NOT(level == 0);
 
+    fetch_disk_cache_counts = 0;
+
     int nres = nres_in;
     int ndis = 0;
     int nfetch = 0;
@@ -746,6 +748,7 @@ int search_from_candidates(
         }
     }
 
+    printf("fetch_disk_cache_counts: %d\n", fetch_disk_cache_counts);
     printf("total_neigh_fetch: %d\n", ndis);
 
     if (level == 0) {

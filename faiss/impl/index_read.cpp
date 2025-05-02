@@ -62,6 +62,8 @@
 #include <faiss/impl/mapped_io.h>
 #include <faiss/impl/zerocopy_io.h>
 #include <cinttypes>
+
+#include <faiss/impl/HNSW_zmq.h>
 namespace faiss {
 
 /*************************************************************
@@ -1422,6 +1424,17 @@ Index* read_index(
         if (hnsw_config.is_recompute) {
             printf("INFO: Skipping external storage loading, since is_recompute is true.\n");
             idxhnsw->is_recompute = true;
+
+            // even if is_recompute is true, when disk cache is on, we need to
+            // set the offset to the external storage path
+            if (hnsw_config.disk_cache_ratio > 0) {
+                setup_experimental_top_degree_disk_read(
+                        "/opt/dlami/nvme/scaling_out/indices/rpj_wiki/facebook/contriever-msmarco/hnsw/degree_distribution.txt",
+                        hnsw_config.disk_cache_ratio,
+                        hnsw_config.external_storage_path,
+                        45,
+                        idxhnsw->ntotal);
+            }
         } else if (hnsw_config.external_storage_path != nullptr) {
             // Load storage from the external file
             printf("INFO: Loading external storage from: %s\n",

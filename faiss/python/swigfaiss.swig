@@ -16,6 +16,9 @@
 
 %module swigfaiss;
 
+%ignore faiss::ZmqDistanceComputer::setup_experimental_top_degree_disk_read;
+
+
 %ignore faiss::HNSW::pq_data_loader;
 %ignore faiss::HNSW::pq_pruning_ratio;
 %ignore faiss::HNSW::pq_codes;

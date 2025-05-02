@@ -55,6 +55,10 @@ struct IndexHNSW : Index {
 
     bool is_recompute = false;
 
+    // ---- Experimental top degree disk read feature ----
+    std::string experimental_disk_storage_path = "";
+    off_t experimental_disk_data_offset = -1;
+
     explicit IndexHNSW(
             int d = 0,
             int M = 32,

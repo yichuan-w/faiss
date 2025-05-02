@@ -71,16 +71,19 @@ struct HNSWIndexConfig {
     bool is_compact;
     bool is_skip_neighbors;
     bool is_recompute;
+    float disk_cache_ratio = 0;
     const char* external_storage_path;
 
     HNSWIndexConfig(
             bool is_compact,
             bool is_skip_neighbors,
             bool is_recompute,
+            float disk_cache_ratio,
             const char* external_storage_path)
             : is_compact(is_compact),
               is_skip_neighbors(is_skip_neighbors),
               is_recompute(is_recompute),
+              disk_cache_ratio(disk_cache_ratio),
               external_storage_path(external_storage_path) {}
 
     HNSWIndexConfig() = default;

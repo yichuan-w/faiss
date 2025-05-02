@@ -27,10 +27,15 @@
 #include <faiss/utils/random.h>
 #include <faiss/utils/sorting.h>
 
+#include <fcntl.h>
 #include <msgpack.hpp>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <zmq.h>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <fstream>
 #include <future>
 #include <sstream> // For msgpack stringstream buffer
 #include <thread>
@@ -38,6 +43,176 @@
 #include "HNSW_zmq.h"
 
 namespace faiss {
+
+namespace {
+std::string experimental_disk_storage_path;
+off_t experimental_disk_data_offset;
+int experimental_block_size;
+std::vector<bool> experimental_is_in_top_degree_set;
+} // namespace
+
+void setup_experimental_top_degree_disk_read(
+        const std::string& degree_path,
+        float top_percent,
+        const std::string& storage_path,
+        off_t data_offset,
+        idx_t ntotal) {
+    FAISS_THROW_IF_NOT_FMT(
+            data_offset >= 0, "Data offset (%ld) invalid.", data_offset);
+    FAISS_THROW_IF_NOT_MSG(
+            top_percent >= 0.0f && top_percent <= 100.0f,
+            "top_percent invalid.");
+    FAISS_THROW_IF_NOT_FMT(
+            ntotal > 0, "ntotal (%ld) must be positive.", ntotal);
+
+    // 3. Determine threshold and build the boolean set
+    if (abs(top_percent - 0.0f) <= 1e-6) {
+        return;
+    }
+
+    // 1. Get block size
+    struct stat file_stat;
+    int block_size = 4096;
+    if (stat(storage_path.c_str(), &file_stat) == 0) {
+        block_size = (file_stat.st_blksize > 0) ? file_stat.st_blksize : 4096;
+    } else {
+        // Fail fast on stat error as block size is critical for O_DIRECT
+        FAISS_THROW_FMT(
+                "Setup Error: Cannot stat storage file %s: %s",
+                storage_path.c_str(),
+                strerror(errno));
+    }
+    FAISS_THROW_IF_NOT(block_size > 0);
+
+    // 2. Load degree distribution temporarily
+    std::vector<int> degrees;
+    std::ifstream degree_file(degree_path);
+    if (degree_file.is_open()) {
+        std::string line;
+        if (ntotal > 0)
+            degrees.reserve(ntotal);
+        while (std::getline(degree_file, line)) {
+            if (line.empty())
+                continue;
+            try {
+                degrees.push_back(std::stoi(line));
+            } catch (...) { /* ignore */
+            }
+        }
+        degree_file.close();
+    } else {
+        FAISS_THROW_FMT(
+                "Setup Error: Degree file not found: %s", degree_path.c_str());
+    }
+    FAISS_THROW_IF_NOT_FMT(
+            !degrees.empty(), "Degree file %s empty.", degree_path.c_str());
+    if ((idx_t)degrees.size() != ntotal) {
+        FAISS_THROW_FMT(
+                "Setup Error: Degree file size (%zu) != ntotal (%ld).",
+                degrees.size(),
+                ntotal);
+    }
+
+    std::vector<int> sorted_degrees = degrees;
+    std::sort(
+            sorted_degrees.begin(), sorted_degrees.end(), std::greater<int>());
+
+    float percentile = top_percent / 100.0f;
+    size_t threshold_idx = std::min(
+            (size_t)(sorted_degrees.size() * percentile) - 1,
+            sorted_degrees.size() - 1); // Clamp index
+
+    int degree_threshold =
+            sorted_degrees[threshold_idx]; // Store threshold for info
+
+    std::vector<bool> is_in_top_degree_set(ntotal, false);
+    size_t top_node_count = 0;
+    for (idx_t i = 0; i < ntotal; ++i) {
+        if (degrees[i] >= degree_threshold) {
+            is_in_top_degree_set[i] = true;
+            top_node_count++;
+        }
+    }
+    experimental_disk_storage_path = storage_path;
+    experimental_disk_data_offset = data_offset;
+    experimental_block_size = block_size;
+    experimental_is_in_top_degree_set = is_in_top_degree_set;
+
+    printf("ZmqDC Setup: Disk logic Top %.2f%% (deg>=%d). %zu nodes. Offset=%ld, BlkSize=%d\n",
+           top_percent,
+           degree_threshold,
+           top_node_count,
+           data_offset,
+           block_size);
+}
+
+bool fetch_embeddings_zmq(
+        const std::vector<uint32_t>& node_ids,
+        std::vector<std::vector<float>>& out_embeddings,
+        int zmq_port = 5557); // Default port kept
+
+float read_disk_and_compute_local_ip(idx_t i, size_t d, const float* query) {
+    size_t vector_bytes = d * sizeof(float);
+    std::vector<float> vec_buffer(d);
+    void* aligned_buffer = nullptr;
+    size_t block_size = experimental_block_size;
+
+    int fd =
+            open(experimental_disk_storage_path.c_str(),
+                 O_RDONLY | O_CLOEXEC | O_DIRECT);
+    if (fd == -1) {
+        assert(false);
+    }
+
+    off_t desired_start =
+            experimental_disk_data_offset + (off_t)i * vector_bytes;
+    off_t desired_end = desired_start + vector_bytes;
+    off_t aligned_start = (desired_start / block_size) * block_size;
+    off_t aligned_end =
+            ((desired_end + block_size - 1) / block_size) * block_size;
+    size_t bytes_to_read_aligned = aligned_end - aligned_start;
+
+    assert(bytes_to_read_aligned > 0);
+    if (posix_memalign(&aligned_buffer, block_size, bytes_to_read_aligned) !=
+        0) {
+        assert(false);
+    }
+
+    ssize_t bytes_read =
+            pread(fd, aligned_buffer, bytes_to_read_aligned, aligned_start);
+    close(fd);
+
+    assert(bytes_read == (ssize_t)bytes_to_read_aligned);
+    size_t internal_offset = desired_start - aligned_start;
+    // Check bounds before memcpy
+    assert(internal_offset + vector_bytes <= bytes_to_read_aligned);
+    memcpy(vec_buffer.data(),
+           (char*)aligned_buffer + internal_offset,
+           vector_bytes);
+    // For IP metric, we need to return negative IP
+    // fetch embeddings to check
+    // std::vector<std::vector<float>> out_embeddings;
+    // bool success = fetch_embeddings_zmq(
+    //         std::vector<uint32_t>{(uint32_t)i}, out_embeddings, 5557);
+    // assert(success);
+    // assert(out_embeddings.size() == 1);
+    // assert(out_embeddings[0].size() == d);
+    // for (auto i = 0; i < out_embeddings.size(); i++) {
+    //     for (auto j = 0; j < out_embeddings[i].size(); j++) {
+    //         if (abs(out_embeddings[i][j] - vec_buffer[j]) > 1e-3) {
+    //             printf("ERROR: disk and remote fetched embeddings mismatch
+    //             for id %ld, error: %f\n",
+    //                    i,
+    //                    abs(out_embeddings[i][j] - vec_buffer[j]));
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+    float distance = -fvec_inner_product(query, vec_buffer.data(), d);
+    free(aligned_buffer);
+    return distance;
+}
+
 // --- MessagePack Data Structures (Define simple structs for serialization) ---
 struct EmbeddingRequestMsgpack {
     std::vector<uint32_t> node_ids;
@@ -74,7 +249,7 @@ struct DistanceResponseMsgpack {
 bool fetch_embeddings_zmq(
         const std::vector<uint32_t>& node_ids,
         std::vector<std::vector<float>>& out_embeddings,
-        int zmq_port = 5557) // Default port kept
+        int zmq_port) // Default port kept
 {
     EmbeddingRequestMsgpack req_msgpack;
     req_msgpack.node_ids = node_ids;
@@ -397,42 +572,77 @@ bool fetch_distances_zmq(
 void ZmqDistanceComputer::distances_batch(
         const std::vector<idx_t>& ids,
         std::vector<float>& distances_out) {
-    if (ids.empty()) {
-        distances_out.clear();
-        return;
+    // Resize output vector
+    distances_out.resize(ids.size());
+
+    // Separate nodes into disk-read and remote-read groups
+    std::vector<uint32_t> remote_nodes;
+    std::vector<size_t> remote_orig_indices;
+    std::vector<uint32_t> disk_nodes;
+    std::vector<size_t> disk_orig_indices;
+
+    for (size_t j = 0; j < ids.size(); ++j) {
+        idx_t id = ids[j];
+        if (experimental_is_in_top_degree_set.empty()) {
+            remote_nodes.push_back(id);
+            remote_orig_indices.push_back(j);
+        } else {
+            assert(id >= 0 &&
+                   (size_t)id < experimental_is_in_top_degree_set.size());
+            if (experimental_is_in_top_degree_set[id]) {
+                // Mark for disk read
+                disk_nodes.push_back(id);
+                disk_orig_indices.push_back(j);
+            } else {
+                // Mark for remote read
+                remote_nodes.push_back(id);
+                remote_orig_indices.push_back(j);
+            }
+        }
     }
 
-    std::vector<uint32_t> node_ids(ids.size());
-    for (size_t i = 0; i < ids.size(); i++) {
-        node_ids[i] = (uint32_t)ids[i];
+    // Process remote nodes via ZMQ if any
+    if (!remote_nodes.empty()) {
+        // Call the original ZMQ batch function
+        std::vector<float> fetched_distances;
+        bool success = fetch_distances_zmq(
+                remote_nodes, query.data(), d, fetched_distances, ZMQ_PORT);
+        assert(success && fetched_distances.size() == remote_nodes.size());
+
+        for (size_t j = 0; j < remote_nodes.size(); ++j) {
+            distances_out[remote_orig_indices[j]] = fetched_distances[j];
+        }
+        fetch_count += remote_nodes.size(); // Count these as fetches
     }
 
-    // Use server-side distance calculation instead of fetching embeddings
-    auto start_time = std::chrono::high_resolution_clock::now();
-    bool fetch_success = fetch_distances_zmq(
-            node_ids, query.data(), d, distances_out, ZMQ_PORT);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                            end_time - start_time)
-                            .count();
+    // timing
+    std::chrono::steady_clock::time_point disk_start =
+            std::chrono::steady_clock::now();
 
-    // std::cout << "fetch_distances_zmq took " << duration << " microseconds
-    // for "
-    //           << ids.size() << " nodes" << std::endl;
+    // Process disk nodes locally
+    for (size_t j = 0; j < disk_nodes.size(); ++j) {
+        float disk_dist =
+                read_disk_and_compute_local_ip(disk_nodes[j], d, query.data());
 
-    if (!fetch_success || distances_out.size() != ids.size()) {
-        // Use fallback values on error
-        distances_out.resize(ids.size());
-        std::fill(
-                distances_out.begin(),
-                distances_out.end(),
-                (metric_type == METRIC_INNER_PRODUCT)
-                        ? -std::numeric_limits<float>::max()
-                        : std::numeric_limits<float>::max());
-        return;
+        // sanity check with remote fetched ones
+        // if (abs(disk_dist - distances_out[disk_orig_indices[j]]) > 1e-4) {
+        //     printf("ERROR: disk and remote fetched distances mismatch for id
+        //     %ld, error: %f\n",
+        //            disk_nodes[j],
+        //            abs(disk_dist - distances_out[disk_orig_indices[j]]));
+        //     // assert(false);
+        // }
+        distances_out[disk_orig_indices[j]] = disk_dist;
     }
+    fetch_disk_cache_counts += disk_nodes.size();
 
-    // Update fetch count
-    fetch_count += ids.size();
+    // timing
+    std::chrono::steady_clock::time_point disk_end =
+            std::chrono::steady_clock::now();
+    std::chrono::duration<double> disk_duration = disk_end - disk_start;
+    printf("ZmqDC Distances Batch Time: %f seconds\n", disk_duration.count());
 }
+
+// --- Implementation of new experimental methods ---
+
 } // namespace faiss

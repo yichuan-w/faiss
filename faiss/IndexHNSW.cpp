@@ -151,7 +151,7 @@ void hnsw_add_vertices(
                 std::swap(order[j], order[j + rng2.rand_int(i1 - j)]);
 
             bool interrupt = false;
-            bool degree_based_prune = true;
+            bool degree_based_prune = false;
             std::vector<int> degree_distribution;
             int degree_threshold;
             if (degree_based_prune) {
@@ -198,7 +198,7 @@ void hnsw_add_vertices(
 #pragma omp for schedule(static)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
-                    bool prune = true;
+                    bool prune = false;
                     if (pt_level == 0 && prune) {
                         if (!degree_based_prune) {
                             // printf("i: %d, order[i]: %d\n", i, order[i]);
@@ -270,6 +270,7 @@ void hnsw_add_vertices(
     }
 
     // hnsw.delete_random_level0_edges_minimal(0.55);
+    // index_hnsw.save_edge_stats("edge_stats.txt");
 }
 
 } // namespace
@@ -1109,6 +1110,74 @@ void IndexHNSWCagra::search(
                 1, // search_type
                 params);
     }
+}
+
+// Save edge statistics for the HNSW graph
+void IndexHNSW::save_edge_stats(const char* filename) const {
+    if (ntotal == 0) {
+        printf("No edges to save - index is empty\n");
+        return;
+    }
+
+    FILE* f = fopen(filename, "w");
+    if (!f) {
+        fprintf(stderr, "Could not open %s for writing\n", filename);
+        return;
+    }
+
+    // Write header
+    fprintf(f, "src,dst,level,distance\n");
+
+    // Create a distance computer for calculating distances
+    std::unique_ptr<DistanceComputer> dis(storage_distance_computer(storage));
+
+    size_t edge_count = 0;
+
+    // Iterate through all nodes and their neighbors at each level
+    for (storage_idx_t src = 0; src < ntotal; src++) {
+        int node_level = hnsw.levels[src];
+
+        // For each level the node exists in
+        for (int level = 0; level < node_level; level++) {
+            if (level != 0) {
+                continue; // Only process level 0 for now
+            }
+
+            size_t begin, end;
+            hnsw.neighbor_range(src, level, &begin, &end);
+
+            // For each neighbor at this level
+            for (size_t j = begin; j < end; j++) {
+                storage_idx_t dst = hnsw.neighbors[j];
+                if (dst < 0)
+                    break; // End of neighbors list
+
+                // Calculate distance between src and dst
+                float distance = dis->symmetric_dis(src, dst);
+
+                // Write to file: src,dst,level,distance
+                fprintf(f,
+                        "%d,%d,%d,%f\n",
+                        (int)src,
+                        (int)dst,
+                        level,
+                        distance);
+                edge_count++;
+            }
+        }
+
+        // Print progress every 10000 nodes
+        if (src % 10000 == 0 && src > 0) {
+            printf("Processed %d/%d nodes, %zu edges so far\r",
+                   (int)src,
+                   (int)ntotal,
+                   edge_count);
+            fflush(stdout);
+        }
+    }
+
+    fclose(f);
+    printf("\nSaved statistics for %zu edges to %s\n", edge_count, filename);
 }
 
 } // namespace faiss

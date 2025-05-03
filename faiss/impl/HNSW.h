@@ -79,9 +79,51 @@ struct HNSW {
                 : node_id(n), neighbor_array_index(idx) {}
     };
 
-    void delete_random_level0_edges_minimal(
-            float prune_ratio = 0.5);
+    // Add a struct to store percentile-to-distance mapping
+    struct PercentileThreshold {
+        float percentile; // Percentile value (e.g., 0.5, 1.0, etc.)
+        float threshold;  // Distance threshold at this percentile
+
+        PercentileThreshold(float p, float t) : percentile(p), threshold(t) {}
+    };
+
+    // Store the percentile thresholds
+    std::vector<PercentileThreshold> percentile_thresholds;
+
+    // Method to set the percentile thresholds with predefined values
+    void set_percentile_thresholds() {
+        percentile_thresholds.clear();
+        // Add the predefined percentile-threshold pairs
+        percentile_thresholds.emplace_back(0.5f, -2.801647f);
+        percentile_thresholds.emplace_back(1.0f, -2.708753f);
+        percentile_thresholds.emplace_back(2.0f, -2.625265f);
+        percentile_thresholds.emplace_back(3.0f, -2.576904f);
+        percentile_thresholds.emplace_back(5.0f, -2.515250f);
+        percentile_thresholds.emplace_back(8.0f, -2.451823f);
+        percentile_thresholds.emplace_back(10.0f, -2.417586f);
+        percentile_thresholds.emplace_back(15.0f, -2.345697f);
+        percentile_thresholds.emplace_back(20.0f, -2.287264f);
+        percentile_thresholds.emplace_back(30.0f, -2.191441f);
+        percentile_thresholds.emplace_back(40.0f, -2.104487f);
+        percentile_thresholds.emplace_back(50.0f, -2.012791f);
+        percentile_thresholds.emplace_back(60.0f, -1.909652f);
+        percentile_thresholds.emplace_back(70.0f, -1.803186f);
+    }
+
+
+    // Method to get the threshold for a specific percentile
+    float get_threshold_for_percentile(float percentile) const {
+        for (const auto& pt : percentile_thresholds) {
+            if (std::abs(pt.percentile - percentile) < 0.001f) {
+                return pt.threshold;
+            }
+        }
+        return 0.0f; // Default if not found
+    }
+
+    void delete_random_level0_edges_minimal(float prune_ratio = 0.5);
     void merge_nodes(float merge_threshold);
+    //     void save_edge_stats(const char* filename) ;
 
     // for now we do only these distances
     using C = CMax<float, int64_t>;

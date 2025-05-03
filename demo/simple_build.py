@@ -21,9 +21,8 @@ M = 32
 efConstruction = 256
 K_NEIGHBORS = 3
 
-
-DB_EMBEDDING_FILE = "/opt/dlami/nvme/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki/1-shards/passages_00.pkl"
-INDEX_SAVING_FILE = "/opt/dlami/nvme/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki/1-shards/indices"
+DB_EMBEDDING_FILE = "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/passages_00.pkl"
+INDEX_SAVING_FILE = "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices"
 TASK_NAME = "nq"
 EMBEDDER_MODEL_NAME = "facebook/contriever-msmarco"
 MAX_QUERIES_TO_LOAD = 1000
@@ -119,16 +118,16 @@ if xq_full.shape[1] != d:
 
 # recall_idx = []
 
-# print("\nBuilding FlatIP index for ground truth...")
-# index_flat = faiss.IndexFlatIP(d)  # Use Inner Product
-# index_flat.add(xb)
-# print(f"Searching FlatIP index with {MAX_QUERIES_TO_LOAD} queries (k={K_NEIGHBORS})...")
-# D_flat, recall_idx_flat = index_flat.search(xq_full, k=K_NEIGHBORS)
+print("\nBuilding FlatIP index for ground truth...")
+index_flat = faiss.IndexFlatIP(d)  # Use Inner Product
+index_flat.add(xb)
+print(f"Searching FlatIP index with {MAX_QUERIES_TO_LOAD} queries (k={K_NEIGHBORS})...")
+D_flat, recall_idx_flat = index_flat.search(xq_full, k=K_NEIGHBORS)
 
 # print(recall_idx_flat)
 
 # Create a specific directory for this index configuration
-index_dir = f"{INDEX_SAVING_FILE}/99_4_degree_based_hnsw_IP_M{M}_efC{efConstruction}"
+index_dir = f"{INDEX_SAVING_FILE}/hnsw_IP_M{M}_efC{efConstruction}"
 os.makedirs(index_dir, exist_ok=True)
 index_filename = f"{index_dir}/index.faiss"
 
@@ -143,6 +142,7 @@ else:
     start_time = time.time()
     index = faiss.IndexHNSWFlat(d, M, faiss.METRIC_INNER_PRODUCT)
     index.hnsw.efConstruction = efConstruction
+    index.hnsw.set_percentile_thresholds()
     index.add(xb)
     end_time = time.time()
     print(f'time: {end_time - start_time}')
@@ -152,7 +152,6 @@ else:
     print(f"Saving index to {index_filename}...")
     faiss.write_index(index, index_filename)
     print("Index saved successfully.")
-
 # Analyze the HNSW index
 print("\nAnalyzing HNSW index...")
 print(f"Total number of nodes: {index.ntotal}")
@@ -192,15 +191,19 @@ print('Searching HNSW index...')
 
 
 recall_result_file = f"{index_dir}/recall_result.txt"
+time_list = []
+recall_list = []
 with open(recall_result_file, 'w') as f:
-    for efSearch in [2, 4, 8, 16, 32, 64,128,256,512,1024]:
+    for efSearch in [2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1152, 1536, 2048]:
         index.hnsw.efSearch = efSearch
         # calculate the time of searching
         start_time = time.time()
         
         D, I = index.search(xq_full, K_NEIGHBORS)
+        print('D[0]:', D[0])
         end_time = time.time()
         print(f'time: {end_time - start_time}')
+        time_list.append(end_time - start_time)
         # print(I)
 
         # calculate the recall using the flat index the formula:
@@ -213,7 +216,77 @@ with open(recall_result_file, 'w') as f:
                     acc += 1
             recall.append(acc / len(I[i]))
         recall = sum(recall) / len(recall)
+        recall_list.append(recall)
         print(f'efSearch: {efSearch}')
         print(f'recall: {recall}')
         f.write(f'efSearch: {efSearch}, recall: {recall}\n')
 print(f'Done and result saved to {recall_result_file}')
+print(f'time_list: {time_list}')
+print(f'recall_list: {recall_list}')
+exit()
+# Analyze edge stats
+print("\nAnalyzing edge statistics...")
+edge_stats_file = f"{index_dir}/edge_stats.txt"
+if not os.path.exists(edge_stats_file):
+    index.save_edge_stats(edge_stats_file)
+    print(f'Edge stats saved to {edge_stats_file}')
+else:
+    print(f'Edge stats already exists at {edge_stats_file}')
+
+
+def analyze_edge_stats(filename):
+    """
+    Analyze edge statistics from a CSV file and print thresholds at various percentiles.
+    
+    Args:
+        filename: Path to the edge statistics CSV file
+    """
+    if not os.path.exists(filename):
+        print(f"Error: File {filename} does not exist")
+        return
+    
+    print(f"Analyzing edge statistics from {filename}...")
+    
+    # Read the file
+    distances = []
+    with open(filename, 'r') as f:
+        # Skip header
+        header = f.readline()
+        
+        # Read all edges
+        for line in f:
+            parts = line.strip().split(',')
+            if len(parts) >= 4:
+                try:
+                    src = int(parts[0])
+                    dst = int(parts[1])
+                    level = int(parts[2])
+                    distance = float(parts[3])
+                    distances.append(distance)
+                except ValueError:
+                    continue
+    
+    if not distances:
+        print("No valid edges found in file")
+        return
+    
+    # Sort distances
+    distances = np.array(distances)
+    distances.sort()
+    
+    # Calculate and print statistics
+    print(f"Total edges: {len(distances)}")
+    print(f"Min distance: {distances[0]:.6f}")
+    print(f"Max distance: {distances[-1]:.6f}")
+    
+    # Print thresholds at specified percentiles
+    percentiles = [0.5, 1, 2, 3, 5, 8, 10, 15, 20,30,40,50,60,70]
+    print("\nDistance thresholds at percentiles:")
+    for p in percentiles:
+        idx = int(len(distances) * p / 100)
+        if idx < len(distances):
+            print(f"{p:.1f}%: {distances[idx]:.6f}")
+    
+    return distances
+
+analyze_edge_stats(edge_stats_file)

@@ -133,6 +133,8 @@ struct IndexHNSW : Index {
 
     /// Get the total number of vector fetches performed during the last search.
     size_t get_last_total_fetch_count() const;
+
+    void save_edge_stats(const char* filename) const;
 };
 
 /** Flat index topped with with a HNSW structure to access elements

@@ -625,7 +625,7 @@ int search_from_candidates(
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
         if (perform_pq_pruning) {
-            bool local_prune = false;
+            bool local_prune = true;
             pq_code_scratch.resize(n_new * hnsw.code_size);
             pq_dists_out.resize(n_new);
 
@@ -771,8 +771,8 @@ int search_from_candidates(
         }
     }
 
-    printf("fetch_disk_cache_counts: %d\n", fetch_disk_cache_counts);
-    printf("total_neigh_fetch: %d\n", ndis);
+    // printf("fetch_disk_cache_counts: %d\n", fetch_disk_cache_counts);
+    // printf("total_neigh_fetch: %d\n", ndis);
 
     if (level == 0) {
         stats.n1++;

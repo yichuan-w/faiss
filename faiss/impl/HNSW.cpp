@@ -765,8 +765,47 @@ void HNSW::add_links_starting_from(
     std::vector<storage_idx_t> neighbors_to_add;
     neighbors_to_add.reserve(link_targets.size());
     bool prune_in_add_link = false;
+
+    // Check if we should apply node merging based on distance threshold
+    bool apply_merging = !percentile_thresholds.empty() && level == 0;
+    float merge_threshold =
+            apply_merging ? get_threshold_for_percentile(50.0f) : 0.0f;
+    bool pass_first_node = false;
+    bool merged_node = false;
+
     while (!link_targets.empty()) {
         storage_idx_t other_id = link_targets.top().id;
+        float distance = link_targets.top().d;
+
+        // If this is the first node and its distance is below threshold, add it
+        // and break
+        if (merged_node && apply_merging && !pass_first_node && distance < -1.8) {
+            if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
+                add_link_pruned(
+                        *this,
+                        ptdis,
+                        pt_id,
+                        other_id,
+                        level,
+                        keep_max_size_level0);
+            } else {
+                add_link(
+                        *this,
+                        ptdis,
+                        pt_id,
+                        other_id,
+                        level,
+                        keep_max_size_level0);
+            }
+            neighbors_to_add.push_back(other_id);
+            pass_first_node = true;
+            link_targets.pop();
+            printf("add_link_pruned src, dst, distance: %d, %d, %f\n", pt_id, other_id, distance);
+            break; // Only add this one node and stop
+        }
+
+        // Normal processing for nodes above threshold or when merging is not
+        // applied
         if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
             add_link_pruned(
                     *this, ptdis, pt_id, other_id, level, keep_max_size_level0);

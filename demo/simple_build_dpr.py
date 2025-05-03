@@ -133,7 +133,7 @@ print(f"Searching FlatIP index with {len(xq_full)} queries (k={K_NEIGHBORS})..."
 D_flat, recall_idx_flat = index_flat.search(xq_full, k=K_NEIGHBORS)
 
 # Create a specific directory for this index configuration
-index_dir = f"{INDEX_SAVING_FILE}/dpr_hnsw_IP_M{M}_efC{efConstruction}"
+index_dir = f"{INDEX_SAVING_FILE}/hahahdpr_hnsw_IP_M{M}_efC{efConstruction}"
 os.makedirs(index_dir, exist_ok=True)
 index_filename = f"{index_dir}/index.faiss"
 

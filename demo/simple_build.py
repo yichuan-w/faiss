@@ -198,12 +198,13 @@ with open(recall_result_file, 'w') as f:
         index.hnsw.efSearch = efSearch
         # calculate the time of searching
         start_time = time.time()
-        
+        # faiss.cvar.hnsw_stats.reset()
         D, I = index.search(xq_full, K_NEIGHBORS)
         print('D[0]:', D[0])
         end_time = time.time()
         print(f'time: {end_time - start_time}')
         time_list.append(end_time - start_time)
+        print("recompute:", faiss.cvar.hnsw_stats.ndis)
         # print(I)
 
         # calculate the recall using the flat index the formula:

@@ -25,7 +25,7 @@ inline int fetch_disk_cache_counts = 0;
 
 struct ZmqDistanceComputer : DistanceComputer {
     size_t d;
-    const int ZMQ_PORT = 5557;
+    int zmq_port;
     MetricType metric_type;
     float metric_arg;
     const Index* storage;
@@ -39,8 +39,12 @@ struct ZmqDistanceComputer : DistanceComputer {
         return query.data();
     }
     mutable size_t fetch_count = 0;
-    ZmqDistanceComputer(size_t dim, MetricType mt, float marg = 0)
-            : d(dim), metric_type(mt), metric_arg(marg) {
+    ZmqDistanceComputer(
+            size_t dim,
+            MetricType mt,
+            float marg = 0,
+            int zmq_port = 5557)
+            : d(dim), metric_type(mt), metric_arg(marg), zmq_port(zmq_port) {
         FAISS_THROW_IF_NOT_MSG(d > 0, "Dimension must be positive");
         query.resize(d);
         last_fetched_zmq_vector.resize(d); // Preallocate

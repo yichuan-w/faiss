@@ -335,10 +335,12 @@ void hnsw_search(
     // ---- End Addition ----
 
     int efSearch = hnsw.efSearch;
+    int zmq_port = 5557;
     if (params) {
         if (const SearchParametersHNSW* hnsw_params =
                     dynamic_cast<const SearchParametersHNSW*>(params)) {
             efSearch = hnsw_params->efSearch;
+            zmq_port = hnsw_params->zmq_port;
         }
     }
     size_t n1 = 0, n2 = 0, ndis = 0, nhops = 0;
@@ -364,7 +366,10 @@ void hnsw_search(
             if (index->is_recompute) {
                 // Use ZmqDistanceComputer for recomputation
                 dis.reset(new ZmqDistanceComputer(
-                        index->d, index->metric_type, index->metric_arg));
+                        index->d,
+                        index->metric_type,
+                        index->metric_arg,
+                        zmq_port));
             } else {
                 // Use standard distance computer
                 dis.reset(storage_distance_computer(index->storage));

@@ -418,7 +418,7 @@ const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
             fetched_embeddings; // fetch_embeddings_zmq expects this
                                 // structure
 
-    if (!fetch_embeddings_zmq(ids_to_fetch, fetched_embeddings, ZMQ_PORT)) {
+    if (!fetch_embeddings_zmq(ids_to_fetch, fetched_embeddings, zmq_port)) {
         // fprintf(stderr,
         //         "!!! ERROR get_vector_zmq: fetch_embeddings_zmq call
         //         failed for ID %ld !!!\n", (long)id);
@@ -606,7 +606,7 @@ void ZmqDistanceComputer::distances_batch(
         // Call the original ZMQ batch function
         std::vector<float> fetched_distances;
         bool success = fetch_distances_zmq(
-                remote_nodes, query.data(), d, fetched_distances, ZMQ_PORT);
+                remote_nodes, query.data(), d, fetched_distances, zmq_port);
         assert(success && fetched_distances.size() == remote_nodes.size());
 
         for (size_t j = 0; j < remote_nodes.size(); ++j) {
@@ -640,7 +640,10 @@ void ZmqDistanceComputer::distances_batch(
     std::chrono::steady_clock::time_point disk_end =
             std::chrono::steady_clock::now();
     std::chrono::duration<double> disk_duration = disk_end - disk_start;
-    printf("ZmqDC Distances Batch Time: %f seconds\n", disk_duration.count());
+    if (disk_duration.count() > 0.01) { // print if > 10ms
+        printf("ZmqDC Distances Batch Time: %f seconds\n",
+               disk_duration.count());
+    }
 }
 
 // --- Implementation of new experimental methods ---

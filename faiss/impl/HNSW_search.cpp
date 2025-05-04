@@ -406,6 +406,9 @@ int search_from_candidates(
     std::vector<HNSW::storage_idx_t> neighbor_read_buffer; // For pread
     size_t max_deg_l0 = hnsw.nb_neighbors(0);
 
+    bool local_prune = false;
+    float send_neigh_times_ratio = 0;
+
     if (params) {
         if (const SearchParametersHNSW* hnsw_params =
                     dynamic_cast<const SearchParametersHNSW*>(params)) {
@@ -428,6 +431,9 @@ int search_from_candidates(
             // PQ pruning settings
             pq_select_ratio = 1 - hnsw_params->pq_pruning_ratio;
 
+            local_prune = hnsw_params->local_prune;
+            send_neigh_times_ratio = hnsw_params->send_neigh_times_ratio;
+
             // cache_distances = hnsw_params->cache_distances;
         }
         sel = params->sel;
@@ -435,7 +441,8 @@ int search_from_candidates(
 
     bool perform_pq_pruning =
             (hnsw.pq_data_loader && hnsw.pq_data_loader->is_initialized() &&
-             pq_select_ratio < 1);
+             (pq_select_ratio < 1 || local_prune ||
+              send_neigh_times_ratio != 0));
     // Initialize PQ data if needed
     if (perform_pq_pruning) {
         size_t dim = hnsw.pq_data_loader->get_dims();
@@ -625,7 +632,6 @@ int search_from_candidates(
         // Calculate PQ distances for unvisited neighbors and add to global PQ
         // queue
         if (perform_pq_pruning) {
-            bool local_prune = true;
             pq_code_scratch.resize(n_new * hnsw.code_size);
             pq_dists_out.resize(n_new);
 
@@ -649,7 +655,6 @@ int search_from_candidates(
             assert(pq_dists_out.size() == unique_new_neighbors.size());
             PQCandidateQueue local_pq_indices;
             for (size_t i = 0; i < aggregated_count; i++) {
-
                 assert(!vt.get(unique_new_neighbors[i]));
                 local_pq_indices.push(
                         {pq_dists_out[i], unique_new_neighbors[i]});
@@ -658,7 +663,8 @@ int search_from_candidates(
                 pq_candidate_set.insert(
                         {pq_dists_out[i], unique_new_neighbors[i]});
                 // printf("pq_dists_out[i]: %f\n", pq_dists_out[i]);
-                // printf("unique_new_neighbors[i]: %ld\n", unique_new_neighbors[i]);
+                // printf("unique_new_neighbors[i]: %ld\n",
+                // unique_new_neighbors[i]);
             }
             if (local_prune) {
                 // Convert priority queue to vector for sorting
@@ -693,8 +699,7 @@ int search_from_candidates(
                         1, int(pq_candidate_queue.size() * pq_select_ratio));
                 std::vector<PQCandidate> popped_pq_nodes;
                 popped_pq_nodes.reserve(num_to_select);
-                bool send_neigh_times_ratio = false;
-                if (send_neigh_times_ratio) {
+                if (send_neigh_times_ratio > 1e-6) {
                     num_to_select = std::max(1, int(n_new * pq_select_ratio));
 
                     for (int i = 0;

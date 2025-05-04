@@ -61,6 +61,10 @@ struct SearchParametersHNSW : SearchParameters {
     // PQ-instructed pruning
     float pq_pruning_ratio = 0; // Ratio of candidates to select via PQ
 
+    bool local_prune = false;
+    float send_neigh_times_ratio = 0;
+
+    int zmq_port = 5557;
     //     bool cache_distances = false;
 
     ~SearchParametersHNSW() {}

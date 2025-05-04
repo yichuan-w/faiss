@@ -151,16 +151,15 @@ void hnsw_add_vertices(
                 std::swap(order[j], order[j + rng2.rand_int(i1 - j)]);
 
             bool interrupt = false;
-            bool degree_based_prune = false;
+            bool degree_based_prune = true;
             std::vector<int> degree_distribution;
             int degree_threshold;
             if (degree_based_prune) {
                 // Read degree distribution file - contains one degree per line
                 // Line number corresponds to node ID (0-indexed)
-                std::ifstream file(
-                        "/opt/dlami/nvme/scaling_out/indices/rpj_wiki/facebook/contriever-msmarco/hnsw/degree_distribution.txt");
                 // std::ifstream file(
-                //         "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
+                //         "/opt/dlami/nvme/scaling_out/indices/rpj_wiki/facebook/contriever-msmarco/hnsw/degree_distribution.txt");
+                std::ifstream file("/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
                 std::string line;
 
                 // Read all degrees into the vector
@@ -177,7 +176,7 @@ void hnsw_add_vertices(
 
                 // Find the degree threshold for top 10%
                 int threshold_index =
-                        std::max(0, int(sorted_degrees.size() * 0.03) - 1);
+                        std::max(0, int(sorted_degrees.size() * 0.02) - 1);
                 degree_threshold = sorted_degrees[threshold_index];
                 printf("Degree threshold: %d\n", degree_threshold);
             }
@@ -216,7 +215,9 @@ void hnsw_add_vertices(
                             // of simply cut the top 10% let me think about it
                             int pid_degree = degree_distribution[pt_id];
                             if (pid_degree < degree_threshold) {
-                                hnsw.ems[pt_id] = std::max(4, 1);
+                                // random 6 or 7
+                                int random_num = rng2.rand_int(2);
+                                hnsw.ems[pt_id] = std::max(6 + random_num, 1);
                             } else {
                                 hnsw.ems[pt_id] = M;
                             }
@@ -269,7 +270,7 @@ void hnsw_add_vertices(
         omp_destroy_lock(&locks[i]);
     }
 
-    // hnsw.delete_random_level0_edges_minimal(0.55);
+    // hnsw.delete_random_level0_edges_minimal(0.5);
     // index_hnsw.save_edge_stats("edge_stats.txt");
 }
 

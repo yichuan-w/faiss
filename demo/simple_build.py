@@ -7,26 +7,55 @@ import os
 import json
 import time
 import torch
+import argparse
 from tqdm import tqdm
 from pathlib import Path
 import subprocess
+
+# Add argument parsing
+parser = argparse.ArgumentParser(description='Build and evaluate HNSW index')
+parser.add_argument('--config', type=str, default="0.02per_M6-7_degree_based",
+                    help='Configuration name for the index (default: 0.02per_M6-7_degree_based)')
+parser.add_argument('--M', type=int, default=32,
+                    help='HNSW M parameter (default: 32)')
+parser.add_argument('--efConstruction', type=int, default=256,
+                    help='HNSW efConstruction parameter (default: 256)')
+parser.add_argument('--K_NEIGHBORS', type=int, default=3,
+                    help='Number of neighbors to retrieve (default: 3)')
+parser.add_argument('--max_queries', type=int, default=1000,
+                    help='Maximum number of queries to load (default: 1000)')
+parser.add_argument('--batch_size', type=int, default=64,
+                    help='Batch size for query encoding (default: 64)')
+parser.add_argument('--db_embedding_file', type=str, 
+                    default="/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/passages_00.pkl",
+                    help='Path to database embedding file')
+parser.add_argument('--index_saving_dir', type=str,
+                    default="/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices",
+                    help='Directory to save the index')
+parser.add_argument('--task_name', type=str, default="nq",
+                    help='Task name from TASK_CONFIGS (default: nq)')
+parser.add_argument('--embedder_model', type=str, default="facebook/contriever-msmarco",
+                    help='Model name for query embedding (default: facebook/contriever-msmarco)')
+
+args = parser.parse_args()
+
+# Replace hardcoded constants with arguments
+M = args.M
+efConstruction = args.efConstruction
+K_NEIGHBORS = args.K_NEIGHBORS
+DB_EMBEDDING_FILE = args.db_embedding_file
+INDEX_SAVING_FILE = args.index_saving_dir
+TASK_NAME = args.task_name
+EMBEDDER_MODEL_NAME = args.embedder_model
+MAX_QUERIES_TO_LOAD = args.max_queries
+QUERY_ENCODING_BATCH_SIZE = args.batch_size
+CONFIG_NAME = args.config
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(os.path.join(project_root, "demo"))
 from config import SCALING_OUT_DIR, get_example_path, TASK_CONFIGS
 sys.path.append(project_root)
 from contriever.src.contriever import Contriever, load_retriever
-
-M = 32
-efConstruction = 256
-K_NEIGHBORS = 3
-
-DB_EMBEDDING_FILE = "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/passages_00.pkl"
-INDEX_SAVING_FILE = "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices"
-TASK_NAME = "nq"
-EMBEDDER_MODEL_NAME = "facebook/contriever-msmarco"
-MAX_QUERIES_TO_LOAD = 1000
-QUERY_ENCODING_BATCH_SIZE = 64
 
 # 1M samples
 print(f"Loading embeddings from {DB_EMBEDDING_FILE}...")
@@ -127,7 +156,9 @@ D_flat, recall_idx_flat = index_flat.search(xq_full, k=K_NEIGHBORS)
 # print(recall_idx_flat)
 
 # Create a specific directory for this index configuration
-index_dir = f"{INDEX_SAVING_FILE}/hnsw_IP_M{M}_efC{efConstruction}"
+index_dir = f"{INDEX_SAVING_FILE}/{CONFIG_NAME}_hnsw_IP_M{M}_efC{efConstruction}"
+if CONFIG_NAME == "origin":
+    index_dir = f"{INDEX_SAVING_FILE}/hnsw_IP_M{M}_efC{efConstruction}"
 os.makedirs(index_dir, exist_ok=True)
 index_filename = f"{index_dir}/index.faiss"
 
@@ -193,18 +224,22 @@ print('Searching HNSW index...')
 recall_result_file = f"{index_dir}/recall_result.txt"
 time_list = []
 recall_list = []
+recompute_list = []
 with open(recall_result_file, 'w') as f:
-    for efSearch in [2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1152, 1536, 2048]:
+    for efSearch in [2, 4, 8, 16, 24, 32, 48, 64, 96,114,128,144,160,176,192,208,224,240,256,384,420,440,460,480,512,768,1024,1152,1536,1792,2048,2230,2408,2880]:
         index.hnsw.efSearch = efSearch
         # calculate the time of searching
         start_time = time.time()
-        # faiss.cvar.hnsw_stats.reset()
+        faiss.cvar.hnsw_stats.reset()
+        # print faiss.cvar.hnsw_stats.ndis
+        print(f'ndis: {faiss.cvar.hnsw_stats.ndis}')
         D, I = index.search(xq_full, K_NEIGHBORS)
         print('D[0]:', D[0])
         end_time = time.time()
         print(f'time: {end_time - start_time}')
         time_list.append(end_time - start_time)
-        print("recompute:", faiss.cvar.hnsw_stats.ndis)
+        print("recompute:", faiss.cvar.hnsw_stats.ndis/len(I))
+        recompute_list.append(faiss.cvar.hnsw_stats.ndis/len(I))
         # print(I)
 
         # calculate the recall using the flat index the formula:
@@ -224,6 +259,7 @@ with open(recall_result_file, 'w') as f:
 print(f'Done and result saved to {recall_result_file}')
 print(f'time_list: {time_list}')
 print(f'recall_list: {recall_list}')
+print(f'recompute_list: {recompute_list}')
 exit()
 # Analyze edge stats
 print("\nAnalyzing edge statistics...")

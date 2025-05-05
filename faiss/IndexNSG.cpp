@@ -69,6 +69,8 @@ void IndexNSG::search(
     int L = std::max(nsg.search_L, (int)k); // in case of search L = -1
     idx_t check_period = InterruptCallback::get_period_hint(d * L);
 
+    int ndis = 0;
+
     for (idx_t i0 = 0; i0 < n; i0 += check_period) {
         idx_t i1 = std::min(i0 + check_period, n);
 
@@ -79,13 +81,14 @@ void IndexNSG::search(
             std::unique_ptr<DistanceComputer> dis(
                     storage_distance_computer(storage));
 
-#pragma omp for
+#pragma omp for reduction(+ : ndis)
             for (idx_t i = i0; i < i1; i++) {
                 idx_t* idxi = labels + i * k;
                 float* simi = distances + i * k;
                 dis->set_query(x + i * d);
 
-                nsg.search(*dis, k, idxi, simi, vt);
+                NSGStats stats = nsg.search(*dis, k, idxi, simi, vt);
+                ndis += stats.ndis;
 
                 vt.advance();
             }
@@ -99,6 +102,8 @@ void IndexNSG::search(
             distances[i] = -distances[i];
         }
     }
+
+    nsg_stats.ndis += ndis;
 }
 
 void IndexNSG::build(idx_t n, const float* x, idx_t* knn_graph, int GK_2) {

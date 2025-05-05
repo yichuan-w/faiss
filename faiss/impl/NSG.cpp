@@ -17,6 +17,8 @@
 
 namespace faiss {
 
+NSGStats nsg_stats;
+
 namespace {
 
 using LockGuard = std::lock_guard<std::mutex>;
@@ -116,7 +118,7 @@ NSG::NSG(int R) : R(R), rng(0x0903) {
     srand(0x1998);
 }
 
-void NSG::search(
+NSGStats NSG::search(
         DistanceComputer& dis,
         int k,
         idx_t* I,
@@ -128,13 +130,15 @@ void NSG::search(
     int pool_size = std::max(search_L, k);
     std::vector<Neighbor> retset;
     std::vector<Node> tmp;
-    search_on_graph<false>(
+    NSGStats stats = search_on_graph<false>(
             *final_graph, dis, vt, enterpoint, pool_size, retset, tmp);
 
     for (size_t i = 0; i < k; i++) {
         I[i] = retset[i].id;
         D[i] = retset[i].distance;
     }
+
+    return stats;
 }
 
 void NSG::build(
@@ -246,7 +250,7 @@ void NSG::init_graph(Index* storage, const nsg::Graph<idx_t>& knn_graph) {
 }
 
 template <bool collect_fullset, class index_t>
-void NSG::search_on_graph(
+NSGStats NSG::search_on_graph(
         const nsg::Graph<index_t>& graph,
         DistanceComputer& dis,
         VisitedTable& vt,
@@ -257,6 +261,8 @@ void NSG::search_on_graph(
     RandomGenerator gen(0x1234);
     retset.resize(pool_size + 1);
     std::vector<int> init_ids(pool_size);
+
+    NSGStats stats;
 
     int num_ids = 0;
     std::vector<index_t> neighbors(graph.K);
@@ -287,6 +293,7 @@ void NSG::search_on_graph(
         int id = init_ids[i];
 
         float dist = dis(id);
+        stats.ndis += 1;
         retset[i] = Neighbor(id, dist, true);
 
         if (collect_fullset) {
@@ -313,6 +320,7 @@ void NSG::search_on_graph(
                 vt.set(id);
 
                 float dist = dis(id);
+                stats.ndis += 1;
                 Neighbor nn(id, dist, true);
                 if (collect_fullset) {
                     fullset.emplace_back(id, dist);
@@ -330,6 +338,8 @@ void NSG::search_on_graph(
 
         k = (updated_pos <= k) ? updated_pos : (k + 1);
     }
+
+    return stats;
 }
 
 void NSG::link(

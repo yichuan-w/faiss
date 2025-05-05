@@ -157,9 +157,16 @@ float read_disk_and_compute_local_ip(idx_t i, size_t d, const float* query) {
     void* aligned_buffer = nullptr;
     size_t block_size = experimental_block_size;
 
-    int fd =
+    int fd;
+#ifdef __linux__
+    // O_DIRECT is Linux-specific
+    fd =
             open(experimental_disk_storage_path.c_str(),
                  O_RDONLY | O_CLOEXEC | O_DIRECT);
+#else
+    // macOS doesn't have O_DIRECT
+    fd = open(experimental_disk_storage_path.c_str(), O_RDONLY | O_CLOEXEC);
+#endif
     if (fd == -1) {
         assert(false);
     }

@@ -107,6 +107,12 @@ DistanceComputer* storage_distance_computer(const Index* storage);
 
 } // namespace nsg
 
+struct NSGStats {
+    int ndis = 0;
+};
+
+FAISS_API extern NSGStats nsg_stats;
+
 struct NSG {
     /// internal storage of vectors (32 bits: this is expensive)
     using storage_idx_t = int32_t;
@@ -144,7 +150,7 @@ struct NSG {
     void reset();
 
     // search interface
-    void search(
+    NSGStats search(
             DistanceComputer& dis,
             int k,
             idx_t* I,
@@ -158,7 +164,7 @@ struct NSG {
     // If collect_fullset is true, the visited nodes will be
     // collected in `fullset`.
     template <bool collect_fullset, class index_t>
-    void search_on_graph(
+    NSGStats search_on_graph(
             const nsg::Graph<index_t>& graph,
             DistanceComputer& dis,
             VisitedTable& vt,

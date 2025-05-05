@@ -648,10 +648,8 @@ void ZmqDistanceComputer::distances_batch(
     std::chrono::steady_clock::time_point disk_end =
             std::chrono::steady_clock::now();
     std::chrono::duration<double> disk_duration = disk_end - disk_start;
-    if (disk_duration.count() > 0.01) { // print if > 10ms
-        printf("ZmqDC Distances Batch Time: %f seconds\n",
-               disk_duration.count());
-    }
+    // printf("ZmqDC Distances Batch Time: %f seconds\n",
+    // disk_duration.count());
 }
 
 // --- Implementation of new experimental methods ---

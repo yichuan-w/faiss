@@ -1046,265 +1046,236 @@ Computing degree distribution for level 0
 Saved degree distribution for 1007504 nodes at level 0 to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/random_delete50_hnsw_IP_M32_efC256/degree_distribution.txt
 To visualize the distribution, run:
 python -m faiss.contrib.plot_degree_distribution /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/random_delete50_hnsw_IP_M32_efC256/degree_distribution.txt
-Building HNSW index with agg-1.8_merge_edge...
-Loading embeddings from /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/passages_00.pkl...
-Original dtype: float16
-Converting embeddings to float32.
-Loaded database embeddings (xb), shape: (1007504, 768)
-Using query path from TASK_CONFIGS: /opt/dlami/nvme/scaling_out/examples/nq_open.jsonl
-Reading queries from: /opt/dlami/nvme/scaling_out/examples/nq_open.jsonl
-Stopped loading queries at limit: 1000
-Loaded 1000 query texts.
 
-Initializing retriever model for encoding queries...
-Using device: cuda
-Retriever model loaded.
-
-Encoding 1000 queries (batch size: 64)...
-[LOG] Read 1007504 degrees from /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.txt
-[LOG] Degree Stats: Min=1, Max=64, Avg=13.26, Median=7.0
-[LOG] Degree distribution plot saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.png
-[LOG] Weighted degree distribution plot saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution_weighted.png
-Query embeddings shape: (1000, 768)
-Converting encoded queries from float16 to float32.
-Encoded queries (xq_full), shape: (1000, 768), dtype: float32
-
-Building FlatIP index for ground truth...
-Searching FlatIP index with 1000 queries (k=3)...
-Found existing index at /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/index.faiss, loading...
-Index loaded successfully.
+Building HNSW index with no_large_degree_nodes...
 
 Analyzing HNSW index...
 Total number of nodes: 1007504
 Neighbor statistics:
-None
-Saving degree distribution to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.txt...
-Degree distribution saved successfully.
-Generating degree distribution plot to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.png...
-Degree distribution plot saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.png
-Searching HNSW index...
-ndis: 0
-D[0]: [1.2690866 1.2451942 1.2089256]
-time: 0.02070450782775879
-recompute: 287.613
-efSearch: 2
-recall: 0.199666666666667
-ndis: 0
-D[0]: [1.2690866 1.2451942 1.2089256]
-time: 0.0243990421295166
-recompute: 382.402
-efSearch: 4
-recall: 0.3240000000000002
-ndis: 0
-D[0]: [1.2690866 1.2451942 1.2089256]
-time: 0.03409385681152344
-recompute: 523.344
-efSearch: 8
-recall: 0.46066666666666695
-ndis: 0
-D[0]: [1.2787954 1.2690866 1.2451942]
-time: 0.04887866973876953
-recompute: 742.322
-efSearch: 16
-recall: 0.5846666666666664
-ndis: 0
-D[0]: [1.2787954 1.2690866 1.2451942]
-time: 0.06179213523864746
-recompute: 930.468
-efSearch: 24
-recall: 0.6366666666666663
-ndis: 0
-D[0]: [1.2787954 1.2690866 1.2451942]
-time: 0.07444095611572266
-recompute: 1119.083
-efSearch: 32
-recall: 0.6783333333333329
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2690866]
-time: 0.10100579261779785
-recompute: 1479.715
-efSearch: 48
-recall: 0.7246666666666663
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2690866]
-time: 0.12225699424743652
-recompute: 1816.526
-efSearch: 64
-recall: 0.7593333333333319
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2690866]
-time: 0.16855120658874512
-recompute: 2472.601
-efSearch: 96
-recall: 0.7973333333333317
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2690866]
-time: 0.19158601760864258
-recompute: 2833.475
-efSearch: 114
-recall: 0.8126666666666648
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2690866]
-time: 0.20710253715515137
-recompute: 3105.707
-efSearch: 128
-recall: 0.8213333333333315
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.22163867950439453
-recompute: 3405.312
-efSearch: 144
-recall: 0.8286666666666646
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.2362678050994873
-recompute: 3708.312
-efSearch: 160
-recall: 0.8356666666666648
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.2524416446685791
-recompute: 4002.809
-efSearch: 176
-recall: 0.8423333333333316
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.2692861557006836
-recompute: 4292.189
-efSearch: 192
-recall: 0.8503333333333317
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.28475117683410645
-recompute: 4578.231
-efSearch: 208
-recall: 0.8573333333333316
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.30069899559020996
-recompute: 4856.582
-efSearch: 224
-recall: 0.8623333333333315
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.3133888244628906
-recompute: 5133.347
-efSearch: 240
-recall: 0.8666666666666646
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.33017897605895996
-recompute: 5409.817
-efSearch: 256
-recall: 0.8716666666666646
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.45743894577026367
-recompute: 7488.509
-efSearch: 384
-recall: 0.8893333333333311
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.4856092929840088
-recompute: 8046.283
-efSearch: 420
-recall: 0.8946666666666643
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.5062403678894043
-recompute: 8347.336
-efSearch: 440
-recall: 0.8959999999999975
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.5253057479858398
-recompute: 8646.444
-efSearch: 460
-recall: 0.8976666666666642
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.5383780002593994
-recompute: 8945.702
-efSearch: 480
-recall: 0.9006666666666642
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.5474340915679932
-recompute: 9418.514
-efSearch: 512
-recall: 0.902333333333331
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 0.78989577293396
-recompute: 12982.75
-efSearch: 768
-recall: 0.9139999999999976
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 1.0065770149230957
-recompute: 16262.823
-efSearch: 1024
-recall: 0.9249999999999978
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 1.119744062423706
-recompute: 17822.452
-efSearch: 1152
-recall: 0.9293333333333311
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 1.4218518733978271
-recompute: 22258.828
-efSearch: 1536
-recall: 0.9369999999999978
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 1.681596279144287
-recompute: 25048.513
-efSearch: 1792
-recall: 0.9406666666666645
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 1.8828356266021729
-recompute: 27741.722
-efSearch: 2048
-recall: 0.9436666666666648
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 2.0421013832092285
-recompute: 29593.456
-efSearch: 2230
-recall: 0.9456666666666649
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 2.209887742996216
-recompute: 31364.313
-efSearch: 2408
-recall: 0.9466666666666647
-ndis: 0
-D[0]: [1.341501  1.2787954 1.2777932]
-time: 2.685899257659912
-recompute: 35912.274
-efSearch: 2880
-recall: 0.9496666666666647
-Done and result saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/recall_result.txt
-time_list: [0.02070450782775879, 0.0243990421295166, 0.03409385681152344, 0.04887866973876953, 0.06179213523864746, 0.07444095611572266, 0.10100579261779785, 0.12225699424743652, 0.16855120658874512, 0.19158601760864258, 0.20710253715515137, 0.22163867950439453, 0.2362678050994873, 0.2524416446685791, 0.2692861557006836, 0.28475117683410645, 0.30069899559020996, 0.3133888244628906, 0.33017897605895996, 0.45743894577026367, 0.4856092929840088, 0.5062403678894043, 0.5253057479858398, 0.5383780002593994, 0.5474340915679932, 0.78989577293396, 1.0065770149230957, 1.119744062423706, 1.4218518733978271, 1.681596279144287, 1.8828356266021729, 2.0421013832092285, 2.209887742996216, 2.685899257659912]
-recall_list: [0.199666666666667, 0.3240000000000002, 0.46066666666666695, 0.5846666666666664, 0.6366666666666663, 0.6783333333333329, 0.7246666666666663, 0.7593333333333319, 0.7973333333333317, 0.8126666666666648, 0.8213333333333315, 0.8286666666666646, 0.8356666666666648, 0.8423333333333316, 0.8503333333333317, 0.8573333333333316, 0.8623333333333315, 0.8666666666666646, 0.8716666666666646, 0.8893333333333311, 0.8946666666666643, 0.8959999999999975, 0.8976666666666642, 0.9006666666666642, 0.902333333333331, 0.9139999999999976, 0.9249999999999978, 0.9293333333333311, 0.9369999999999978, 0.9406666666666645, 0.9436666666666648, 0.9456666666666649, 0.9466666666666647, 0.9496666666666647]
-recompute_list: [287.613, 382.402, 523.344, 742.322, 930.468, 1119.083, 1479.715, 1816.526, 2472.601, 2833.475, 3105.707, 3405.312, 3708.312, 4002.809, 4292.189, 4578.231, 4856.582, 5133.347, 5409.817, 7488.509, 8046.283, 8347.336, 8646.444, 8945.702, 9418.514, 12982.75, 16262.823, 17822.452, 22258.828, 25048.513, 27741.722, 29593.456, 31364.313, 35912.274]
-[read_HNSW - CSR NL v4] Reading metadata & CSR indices (manual offset)...
-[read_HNSW NL v4] Read levels vector, size: 1007504
-[READ_HNSW] Reading Original Storage format...
-[READ_HNSW] Probing for potential extra byte before non-compact offsets...
-[READ_HNSW] Found and consumed an unexpected 0x00 byte.
-[READ_HNSW] Original Storage sizes: offsets=1007505, neighbors=65520672
-[read_HNSW NL v4] Read entry_point: 118295, max_level: 0
-[read_HNSW NL v4] Finished reading metadata and CSR indices.
 stats on level 0, max 64 neighbors per vertex:
    nb of nodes at that level 1007504
-   neighbors per node: 13.26 (13356834)
-   nb of reciprocal neighbors: 11.78
-   nb of neighbors that are also neighbor-of-neighbors: 2.27 (2284728)
+   neighbors per node: 11.83 (11914307)
+   nb of reciprocal neighbors: 10.97
+   nb of neighbors that are also neighbor-of-neighbors: 2.77 (2795324)
+None
+Saving degree distribution to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.txt...
 Computing degree distribution for level 0
-Saved degree distribution for 1007504 nodes at level 0 to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.txt
+Saved degree distribution for 1007504 nodes at level 0 to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.txt
 To visualize the distribution, run:
-python -m faiss.contrib.plot_degree_distribution /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/agg-1.8_merge_edge_hnsw_IP_M32_efC256/degree_distribution.txt
+python -m faiss.contrib.plot_degree_distribution /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.txt
+Degree distribution saved successfully.
+Generating degree distribution plot to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.png...
+[LOG] Read 1007504 degrees from /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.txt
+[LOG] Degree Stats: Min=1, Max=64, Avg=11.83, Median=9.0
+[LOG] Degree distribution plot saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.png
+[LOG] Weighted degree distribution plot saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution_weighted.png
+Degree distribution plot saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/degree_distribution.png
+Searching HNSW index...
+ndis: 0
+D[0]: [1.2787954 1.2690866 1.2451942]
+time: 0.013684272766113281
+recompute: 270.759
+efSearch: 2
+recall: 0.21000000000000005
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2690866]
+time: 0.011718988418579102
+recompute: 320.54
+efSearch: 4
+recall: 0.3263333333333331
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2690866]
+time: 0.01632213592529297
+recompute: 400.089
+efSearch: 8
+recall: 0.4620000000000005
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.02247476577758789
+recompute: 515.171
+efSearch: 16
+recall: 0.5963333333333334
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.027916669845581055
+recompute: 613.001
+efSearch: 24
+recall: 0.6626666666666661
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.033490896224975586
+recompute: 706.457
+efSearch: 32
+recall: 0.7076666666666661
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.04565858840942383
+recompute: 892.201
+efSearch: 48
+recall: 0.7719999999999996
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.05448460578918457
+recompute: 1066.325
+efSearch: 64
+recall: 0.8036666666666655
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.07787919044494629
+recompute: 1401.416
+efSearch: 96
+recall: 0.8509999999999984
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.09251642227172852
+recompute: 1583.476
+efSearch: 114
+recall: 0.8659999999999984
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.10004734992980957
+recompute: 1724.672
+efSearch: 128
+recall: 0.8786666666666652
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.11400294303894043
+recompute: 1885.549
+efSearch: 144
+recall: 0.8893333333333316
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.12490487098693848
+recompute: 2045.268
+efSearch: 160
+recall: 0.8983333333333319
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.13971352577209473
+recompute: 2198.574
+efSearch: 176
+recall: 0.9026666666666651
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.15700602531433105
+recompute: 2355.431
+efSearch: 192
+recall: 0.908666666666665
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.1682274341583252
+recompute: 2507.421
+efSearch: 208
+recall: 0.9139999999999981
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.18170523643493652
+recompute: 2657.401
+efSearch: 224
+recall: 0.9173333333333316
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.19881153106689453
+recompute: 2810.6
+efSearch: 240
+recall: 0.9189999999999982
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.2109532356262207
+recompute: 2958.076
+efSearch: 256
+recall: 0.9219999999999982
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.32114171981811523
+recompute: 4121.336
+efSearch: 384
+recall: 0.9379999999999982
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.36971473693847656
+recompute: 4441.101
+efSearch: 420
+recall: 0.9413333333333317
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.38663744926452637
+recompute: 4616.664
+efSearch: 440
+recall: 0.943666666666665
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.4391975402832031
+recompute: 4790.565
+efSearch: 460
+recall: 0.9466666666666651
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.4942452907562256
+recompute: 4963.72
+efSearch: 480
+recall: 0.9476666666666651
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 0.7427053451538086
+recompute: 5233.838
+efSearch: 512
+recall: 0.9493333333333318
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 1.0280921459197998
+recompute: 7362.315
+efSearch: 768
+recall: 0.9606666666666652
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 2.128520965576172
+recompute: 9374.818
+efSearch: 1024
+recall: 0.9676666666666655
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 2.098066806793213
+recompute: 10349.642
+efSearch: 1152
+recall: 0.9693333333333322
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 4.044896125793457
+recompute: 13194.247
+efSearch: 1536
+recall: 0.9756666666666656
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 5.206185340881348
+recompute: 15022.078
+efSearch: 1792
+recall: 0.9793333333333324
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 7.355784893035889
+recompute: 16810.539
+efSearch: 2048
+recall: 0.9819999999999992
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 8.895172595977783
+recompute: 18052.368
+efSearch: 2230
+recall: 0.9836666666666659
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 10.49695873260498
+recompute: 19252.264
+efSearch: 2408
+recall: 0.9839999999999993
+ndis: 0
+D[0]: [1.341501  1.2787954 1.2777932]
+time: 16.027629852294922
+recompute: 22359.698
+efSearch: 2880
+recall: 0.9853333333333327
+Done and result saved to /powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/all_67_wo_high_hnsw_IP_M32_efC256/recall_result.txt
+time_list: [0.013684272766113281, 0.011718988418579102, 0.01632213592529297, 0.02247476577758789, 0.027916669845581055, 0.033490896224975586, 0.04565858840942383, 0.05448460578918457, 0.07787919044494629, 0.09251642227172852, 0.10004734992980957, 0.11400294303894043, 0.12490487098693848, 0.13971352577209473, 0.15700602531433105, 0.1682274341583252, 0.18170523643493652, 0.19881153106689453, 0.2109532356262207, 0.32114171981811523, 0.36971473693847656, 0.38663744926452637, 0.4391975402832031, 0.4942452907562256, 0.7427053451538086, 1.0280921459197998, 2.128520965576172, 2.098066806793213, 4.044896125793457, 5.206185340881348, 7.355784893035889, 8.895172595977783, 10.49695873260498, 16.027629852294922]
+recall_list: [0.21000000000000005, 0.3263333333333331, 0.4620000000000005, 0.5963333333333334, 0.6626666666666661, 0.7076666666666661, 0.7719999999999996, 0.8036666666666655, 0.8509999999999984, 0.8659999999999984, 0.8786666666666652, 0.8893333333333316, 0.8983333333333319, 0.9026666666666651, 0.908666666666665, 0.9139999999999981, 0.9173333333333316, 0.9189999999999982, 0.9219999999999982, 0.9379999999999982, 0.9413333333333317, 0.943666666666665, 0.9466666666666651, 0.9476666666666651, 0.9493333333333318, 0.9606666666666652, 0.9676666666666655, 0.9693333333333322, 0.9756666666666656, 0.9793333333333324, 0.9819999999999992, 0.9836666666666659, 0.9839999999999993, 0.9853333333333327]
+recompute_list: [270.759, 320.54, 400.089, 515.171, 613.001, 706.457, 892.201, 1066.325, 1401.416, 1583.476, 1724.672, 1885.549, 2045.268, 2198.574, 2355.431, 2507.421, 2657.401, 2810.6, 2958.076, 4121.336, 4441.101, 4616.664, 4790.565, 4963.72, 5233.838, 7362.315, 9374.818, 10349.642, 13194.247, 15022.078, 16810.539, 18052.368, 19252.264, 22359.698]

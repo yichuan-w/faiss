@@ -165,7 +165,7 @@ def plot_recall_comparison(methods, recall_lists, recompute_lists, avg_neighbors
     plt.show()
 
 # Read the log file
-with open('faiss/demo/nlevel_output.log', 'r') as f:
+with open('faiss/demo/output.log', 'r') as f:
     log_content = f.read()
 
 # Extract data

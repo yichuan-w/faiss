@@ -488,6 +488,9 @@ int search_from_candidates(
         }
         vt.set(v1);
 
+        // Track this node visit
+        stats.node_visit_counts[v1]++;
+
         // // Add initial candidates to PQ queue if using PQ pruning
         // if (perform_pq_pruning) {
         //     pq_code_scratch.resize(hnsw.code_size);
@@ -531,6 +534,9 @@ int search_from_candidates(
                 int v0 = candidates.pop_min(&d0);
                 assert(v0 >= 0);
 
+                // Track this node visit
+                stats.node_visit_counts[v0]++;
+
                 if (do_dis_check) {
                     // tricky stopping condition: there are more that ef
                     // distances that are processed already that are smaller
@@ -568,6 +574,9 @@ int search_from_candidates(
                 float d0 = 0;
                 int v0 = candidates.pop_min(&d0);
                 FAISS_ASSERT(v0 >= 0);
+
+                // Track this node visit
+                stats.node_visit_counts[v0]++;
 
                 if (do_dis_check) {
                     // tricky stopping condition: there are more that ef
@@ -788,6 +797,51 @@ int search_from_candidates(
         stats.nhops += nstep;
         stats.n_ios = nfetch;
         stats.n_pq_calcs = npq;
+
+        // // Periodically dump node visit statistics to a file
+        // static const size_t NODE_THRESHOLD =
+        //         10000; // Dump when we have at least this many unique nodes
+        // static const size_t SEARCH_INTERVAL = 100; // Or dump every N
+        // searches static int dump_counter = 0; static size_t search_counter =
+        // 0;
+
+        // search_counter++;
+
+        // bool should_dump = stats.node_visit_counts.size() >= NODE_THRESHOLD
+        // ||
+        //         search_counter % SEARCH_INTERVAL == 0;
+
+        // if (should_dump) {
+        //     char filename[256];
+        //     // Dump individual node visit counts
+        //     snprintf(
+        //             filename,
+        //             sizeof(filename),
+        //             "node_visits_%d.csv",
+        //             dump_counter);
+        //     stats.dump_node_visit_stats(filename);
+
+        //     // Dump frequency distribution
+        //     snprintf(
+        //             filename,
+        //             sizeof(filename),
+        //             "visit_frequency_%d.csv",
+        //             dump_counter);
+        //     stats.dump_visit_frequency_distribution(filename);
+
+        //     printf("Dumped node visit statistics (dump #%d, unique nodes:
+        //     %zu, searches: %zu)\n",
+        //            dump_counter,
+        //            stats.node_visit_counts.size(),
+        //            search_counter);
+
+        //     dump_counter++;
+
+        //     // Don't clear the counters so we can see cumulative data
+        //     // If you want to reset after each dump, uncomment the following:
+        //     // stats.node_visit_counts.clear();
+        //     // search_counter = 0;
+        // }
     }
 
     return nres;

@@ -9,8 +9,10 @@
 
 #include <memory>
 #include <queue>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <algorithm>
 
 #include <omp.h>
 
@@ -113,7 +115,6 @@ struct HNSW {
         percentile_thresholds.emplace_back(60.0f, -1.909652f);
         percentile_thresholds.emplace_back(70.0f, -1.803186f);
     }
-
 
     // Method to get the threshold for a specific percentile
     float get_threshold_for_percentile(float percentile) const {
@@ -360,6 +361,9 @@ struct HNSWStats {
     size_t n_ios = 0;  /// number of neighbors fetched on demand
     size_t n_pq_calcs = 0;
 
+    // Track visited node counts
+    std::unordered_map<idx_t, size_t> node_visit_counts;
+
     void reset() {
         n1 = n2 = 0;
         ndis = 0;
@@ -368,6 +372,7 @@ struct HNSWStats {
         nfetch = 0;
         n_ios = 0;
         n_pq_calcs = 0;
+        node_visit_counts.clear();
     }
 
     void combine(const HNSWStats& other) {
@@ -379,6 +384,63 @@ struct HNSWStats {
         nfetch += other.nfetch;
         n_ios += other.n_ios;
         n_pq_calcs += other.n_pq_calcs;
+
+        // Combine node visit counts
+        for (const auto& [node_id, count] : other.node_visit_counts) {
+            node_visit_counts[node_id] += count;
+        }
+    }
+
+    // Dump node visit frequency distribution to a file
+    void dump_node_visit_stats(const char* filename) const {
+        FILE* f = fopen(filename, "w");
+        if (!f) {
+            fprintf(stderr,
+                    "Could not open %s for writing: %s\n",
+                    filename,
+                    strerror(errno));
+            return;
+        }
+
+        fprintf(f, "node_id,visit_count\n");
+        for (const auto& [node_id, count] : node_visit_counts) {
+            fprintf(f, "%ld,%ld\n", (long)node_id, (long)count);
+        }
+
+        fclose(f);
+    }
+
+    // Dump distribution of visit frequencies (how many nodes were visited X times)
+    void dump_visit_frequency_distribution(const char* filename) const {
+        std::unordered_map<size_t, size_t> frequency_counts;
+        
+        // Count how many nodes had each visit count
+        for (const auto& [node_id, visits] : node_visit_counts) {
+            frequency_counts[visits]++;
+        }
+        
+        // Write to file
+        FILE* f = fopen(filename, "w");
+        if (!f) {
+            fprintf(stderr, "Could not open %s for writing: %s\n", 
+                    filename, strerror(errno));
+            return;
+        }
+        
+        fprintf(f, "visit_frequency,node_count,percentage\n");
+        
+        // Sort by visit frequency for better readability
+        std::vector<std::pair<size_t, size_t>> sorted_counts(
+                frequency_counts.begin(), frequency_counts.end());
+        std::sort(sorted_counts.begin(), sorted_counts.end());
+        
+        size_t total_nodes = node_visit_counts.size();
+        for (const auto& [visits, count] : sorted_counts) {
+            double percentage = (100.0 * count) / total_nodes;
+            fprintf(f, "%ld,%ld,%.4f%%\n", (long)visits, (long)count, percentage);
+        }
+        
+        fclose(f);
     }
 };
 

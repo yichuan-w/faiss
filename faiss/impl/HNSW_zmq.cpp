@@ -614,7 +614,8 @@ void ZmqDistanceComputer::distances_batch(
         std::vector<float> fetched_distances;
         bool success = fetch_distances_zmq(
                 remote_nodes, query.data(), d, fetched_distances, zmq_port);
-        assert(success && fetched_distances.size() == remote_nodes.size());
+        assert(success);
+        assert(fetched_distances.size() == remote_nodes.size());
 
         for (size_t j = 0; j < remote_nodes.size(); ++j) {
             distances_out[remote_orig_indices[j]] = fetched_distances[j];

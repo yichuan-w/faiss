@@ -174,31 +174,42 @@ if os.path.exists(index_filename):
     print("Index loaded successfully.")
 else:
     assert False, "Index does not exist"
-    print('Building HNSW index (IP)...')
+    print(f'Building {"NSG" if "nsg" in index_filename else "HNSW"} index (IP)...')
     # add build time
     start_time = time.time()
-    index = faiss.IndexHNSWFlat(d, M, faiss.METRIC_INNER_PRODUCT)
-    index.hnsw.efConstruction = efConstruction
-    index.hnsw.set_percentile_thresholds()
+    if 'nsg' in index_filename:
+        index = faiss.IndexNSGFlat(d, M, faiss.METRIC_INNER_PRODUCT)
+        index.verbose = True
+    else:
+        index = faiss.IndexHNSWFlat(d, M, faiss.METRIC_INNER_PRODUCT)
+        index.hnsw.efConstruction = efConstruction
+        index.hnsw.set_percentile_thresholds()
     index.add(xb)
     end_time = time.time()
     print(f'time: {end_time - start_time}')
-    print('HNSW index built.')
+    print(f'{"NSG" if "nsg" in index_filename else "HNSW"} index built.')
     
-    # Save the HNSW index
+    # Save the index
     print(f"Saving index to {index_filename}...")
     faiss.write_index(index, index_filename)
     print("Index saved successfully.")
-# Analyze the HNSW index
-print("\nAnalyzing HNSW index...")
+
+# Analyze the index
+print("\nAnalyzing index...")
 print(f"Total number of nodes: {index.ntotal}")
 print("Neighbor statistics:")
-print(index.hnsw.print_neighbor_stats(0))
+if 'nsg' in index_filename:
+    print(index.nsg.print_neighbor_stats(0))
+else:
+    print(index.hnsw.print_neighbor_stats(0))
 
 # Save degree distribution
 distribution_filename = f"{index_dir}/degree_distribution.txt"
 print(f"Saving degree distribution to {distribution_filename}...")
-index.hnsw.save_degree_distribution(0, distribution_filename)
+if 'nsg' in index_filename:
+    index.nsg.save_degree_distribution(distribution_filename)
+else:
+    index.hnsw.save_degree_distribution(0, distribution_filename)
 print("Degree distribution saved successfully.")
 
 # Plot the degree distribution
@@ -232,18 +243,28 @@ time_list = []
 recall_list = []
 recompute_list = []
 with open(recall_result_file, 'w') as f:
-    for efSearch in [2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1152, 1536, 2048]:
-        index.hnsw.efSearch = efSearch
+    for efSearch in [2, 4, 8, 16, 24, 32, 48, 64, 96,114,128,144,160,176,192,208,224,240,256,384,420,440,460,480,512,768,1024,1152,1536,1792,2048,2230,2408,2880]:
+        if 'nsg' in index_filename:
+            index.nsg.efSearch = efSearch
+        else:
+            index.hnsw.efSearch = efSearch
         # calculate the time of searching
         start_time = time.time()
-        faiss.cvar.hnsw_stats.reset()
+        if not ('nsg' in index_filename):
+            faiss.cvar.hnsw_stats.reset()
+        else:
+            faiss.cvar.nsg_stats.reset()
         D, I = index.search(xq_full, K_NEIGHBORS)
         print('D[0]:', D[0])
         end_time = time.time()
         print(f'time: {end_time - start_time}')
         time_list.append(end_time - start_time)
-        print("recompute:", faiss.cvar.hnsw_stats.ndis)
-        recompute_list.append(faiss.cvar.hnsw_stats.ndis)
+        if 'nsg' in index_filename:
+            print("recompute:", faiss.cvar.nsg_stats.ndis/len(I))
+            recompute_list.append(faiss.cvar.nsg_stats.ndis/len(I))
+        else:
+            print("recompute:", faiss.cvar.hnsw_stats.ndis/len(I))
+            recompute_list.append(faiss.cvar.hnsw_stats.ndis/len(I))
         # print(I)
 
         # calculate the recall using the flat index the formula:

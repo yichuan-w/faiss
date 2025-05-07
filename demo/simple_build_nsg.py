@@ -1,4 +1,3 @@
-from pkgutil import extend_path
 import sys
 import time
 import faiss
@@ -18,7 +17,7 @@ from config import SCALING_OUT_DIR, get_example_path, TASK_CONFIGS, get_embeddin
 sys.path.append(project_root)
 from contriever.src.contriever import Contriever, load_retriever
 
-M = 16
+M = 20
 efConstruction = 256
 K_NEIGHBORS = 3
 

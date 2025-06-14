@@ -642,7 +642,7 @@ static void read_HNSW(
     READ1_AND_COUNT(hnsw->efConstruction, calculated_offset, f);
     READ1_AND_COUNT(hnsw->efSearch, calculated_offset, f);
 
-    hnsw->max_level = 0;
+    // hnsw->max_level = 0;
 
     READ1_DUMMY(int)
     calculated_offset += sizeof(int);

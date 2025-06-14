@@ -159,7 +159,8 @@ void hnsw_add_vertices(
                 // Line number corresponds to node ID (0-indexed)
                 // std::ifstream file(
                 //         "/opt/dlami/nvme/scaling_out/indices/rpj_wiki/facebook/contriever-msmarco/hnsw/degree_distribution.txt");
-                std::ifstream file("/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
+                std::ifstream file(
+                        "/powerrag/scaling_out/embeddings/facebook/contriever-msmarco/rpj_wiki_1M/1-shards/indices/hnsw_IP_M32_efC256/degree_distribution.txt");
                 std::string line;
 
                 // Read all degrees into the vector
@@ -345,6 +346,8 @@ void hnsw_search(
     }
     size_t n1 = 0, n2 = 0, ndis = 0, nhops = 0;
 
+    std::unordered_map<idx_t, size_t> node_visit_counts;
+
     // ---- Addition: Accumulator for fetch counts ----
     size_t total_fetches_accum = 0;
     // ---- End Addition ----
@@ -407,7 +410,8 @@ void hnsw_search(
         InterruptCallback::check();
     }
 
-    hnsw_stats.combine({n1, n2, ndis, nhops});
+    HNSWStats hnsw_stats{n1, n2, ndis, nhops};
+    hnsw_stats.combine(hnsw_stats);
 }
 
 } // anonymous namespace

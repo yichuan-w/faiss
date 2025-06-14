@@ -7,12 +7,12 @@
 
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <algorithm>
 
 #include <omp.h>
 
@@ -372,6 +372,8 @@ struct HNSWStats {
         nfetch = 0;
         n_ios = 0;
         n_pq_calcs = 0;
+        // printf("Resetting node visit counts\n");
+        // printf("Original size: %zu\n", node_visit_counts.size());
         node_visit_counts.clear();
     }
 
@@ -386,6 +388,9 @@ struct HNSWStats {
         n_pq_calcs += other.n_pq_calcs;
 
         // Combine node visit counts
+        // printf("Two sizes: %zu, %zu\n",
+        //        node_visit_counts.size(),
+        //        other.node_visit_counts.size());
         for (const auto& [node_id, count] : other.node_visit_counts) {
             node_visit_counts[node_id] += count;
         }
@@ -410,36 +415,43 @@ struct HNSWStats {
         fclose(f);
     }
 
-    // Dump distribution of visit frequencies (how many nodes were visited X times)
+    // Dump distribution of visit frequencies (how many nodes were visited X
+    // times)
     void dump_visit_frequency_distribution(const char* filename) const {
         std::unordered_map<size_t, size_t> frequency_counts;
-        
+
         // Count how many nodes had each visit count
         for (const auto& [node_id, visits] : node_visit_counts) {
             frequency_counts[visits]++;
         }
-        
+
         // Write to file
         FILE* f = fopen(filename, "w");
         if (!f) {
-            fprintf(stderr, "Could not open %s for writing: %s\n", 
-                    filename, strerror(errno));
+            fprintf(stderr,
+                    "Could not open %s for writing: %s\n",
+                    filename,
+                    strerror(errno));
             return;
         }
-        
+
         fprintf(f, "visit_frequency,node_count,percentage\n");
-        
+
         // Sort by visit frequency for better readability
         std::vector<std::pair<size_t, size_t>> sorted_counts(
                 frequency_counts.begin(), frequency_counts.end());
         std::sort(sorted_counts.begin(), sorted_counts.end());
-        
+
         size_t total_nodes = node_visit_counts.size();
         for (const auto& [visits, count] : sorted_counts) {
             double percentage = (100.0 * count) / total_nodes;
-            fprintf(f, "%ld,%ld,%.4f%%\n", (long)visits, (long)count, percentage);
+            fprintf(f,
+                    "%ld,%ld,%.4f%%\n",
+                    (long)visits,
+                    (long)count,
+                    percentage);
         }
-        
+
         fclose(f);
     }
 };

@@ -490,6 +490,7 @@ int search_from_candidates(
 
         // Track this node visit
         stats.node_visit_counts[v1]++;
+        // printf("Visted node: %ld\n", v1);
 
         // // Add initial candidates to PQ queue if using PQ pruning
         // if (perform_pq_pruning) {
@@ -536,7 +537,7 @@ int search_from_candidates(
 
                 // Track this node visit
                 stats.node_visit_counts[v0]++;
-
+                // printf("Visted node: %ld\n", v0);
                 if (do_dis_check) {
                     // tricky stopping condition: there are more that ef
                     // distances that are processed already that are smaller
@@ -577,6 +578,7 @@ int search_from_candidates(
 
                 // Track this node visit
                 stats.node_visit_counts[v0]++;
+                // printf("Visted node: %ld\n", v0);
 
                 if (do_dis_check) {
                     // tricky stopping condition: there are more that ef
@@ -798,12 +800,12 @@ int search_from_candidates(
         stats.n_ios = nfetch;
         stats.n_pq_calcs = npq;
 
-        // // Periodically dump node visit statistics to a file
+        // Periodically dump node visit statistics to a file
         // static const size_t NODE_THRESHOLD =
         //         10000; // Dump when we have at least this many unique nodes
         // static const size_t SEARCH_INTERVAL = 100; // Or dump every N
-        // searches static int dump_counter = 0; static size_t search_counter =
-        // 0;
+        // static int dump_counter = 0;
+        // static size_t search_counter = 0;
 
         // search_counter++;
 
@@ -829,8 +831,8 @@ int search_from_candidates(
         //             dump_counter);
         //     stats.dump_visit_frequency_distribution(filename);
 
-        //     printf("Dumped node visit statistics (dump #%d, unique nodes:
-        //     %zu, searches: %zu)\n",
+        //     printf("Dumped node visit statistics (dump #%d, unique nodes:%zu,
+        //     searches: %zu)\n",
         //            dump_counter,
         //            stats.node_visit_counts.size(),
         //            search_counter);

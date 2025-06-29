@@ -316,3 +316,33 @@ configure_file(array_conversions.py array_conversions.py COPYONLY)
 
 # file(GLOB files "${PROJECT_SOURCE_DIR}/../../contrib/*.py")
 file(COPY ${PROJECT_SOURCE_DIR}/../../contrib  DESTINATION .)
+
+# ====================================================================
+# =========               BEGIN LEANN PROJECT PATCH                =========
+# ====================================================================
+# 模仿 diskann 方案，将所有 Python 组件作为“兄弟模块”安装到主包目录中
+
+# 1. 安装 C++ 扩展，目标是主包根目录 leann_backend_hnsw
+install(TARGETS swigfaiss
+    DESTINATION leann_backend_hnsw
+)
+
+# 2. 安装 SWIG 包装器，并重命名为 faiss.py，目标是主包根目录
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swigfaiss.py
+    DESTINATION leann_backend_hnsw
+    RENAME faiss.py
+)
+
+# 3. 安装所有静态辅助 .py 文件，目标是主包根目录
+#    注意：我们不再需要 faiss 自己的 __init__.py 文件了
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/loader.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/class_wrappers.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/gpu_wrappers.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/extra_wrappers.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/array_conversions.py
+    DESTINATION leann_backend_hnsw
+)
+# ====================================================================
+# =========                END LEANN PROJECT PATCH                 =========
+# ====================================================================

@@ -17,10 +17,10 @@ import inspect
 from .loader import *
 
 # additional wrappers
-from faiss import class_wrappers
-from faiss.gpu_wrappers import *
-from faiss.array_conversions import *
-from faiss.extra_wrappers import kmin, kmax, pairwise_distances, rand, randint, \
+from .faiss import class_wrappers
+from .faiss.gpu_wrappers import *
+from .faiss.array_conversions import *
+from .faiss.extra_wrappers import kmin, kmax, pairwise_distances, rand, randint, \
     lrand, randn, rand_smooth_vectors, eval_intersection, normalize_L2, \
     ResultHeap, knn, Kmeans, checksum, matrix_bucket_sort_inplace, bucket_sort, \
     merge_knn_results, MapInt64ToInt64, knn_hamming, \

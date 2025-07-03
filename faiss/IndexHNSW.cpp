@@ -151,7 +151,7 @@ void hnsw_add_vertices(
                 std::swap(order[j], order[j + rng2.rand_int(i1 - j)]);
 
             bool interrupt = false;
-            bool degree_based_prune = true;
+            bool degree_based_prune = false;
             std::vector<int> degree_distribution;
             int degree_threshold;
             if (degree_based_prune) {

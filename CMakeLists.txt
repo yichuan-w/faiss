@@ -87,6 +87,9 @@ if(FAISS_ENABLE_CUVS AND NOT TARGET cuvs::cuvs)
    find_package(cuvs)
  endif()
 
+# Add msgpack-c from third_party
+add_subdirectory(../msgpack-c ${CMAKE_BINARY_DIR}/msgpack-c)
+
 add_subdirectory(faiss)
 
 if(FAISS_ENABLE_GPU)

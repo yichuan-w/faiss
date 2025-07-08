@@ -4,13 +4,9 @@
 # LICENSE file in the root directory of this source tree.
 
 # --- Add ZMQ and MessagePack Dependencies (Add these lines at the top) ---
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(ZeroMQ REQUIRED IMPORTED_TARGET libzmq) # Find libzmq via pkg-config
-pkg_check_modules(MSGPACK msgpack REQUIRED)
-
-if(NOT MSGPACK_FOUND)
-    message(FATAL_ERROR "msgpack-c library not found. Please install it (e.g., libmsgpack-dev on Debian/Ubuntu) or configure PKG_CONFIG_PATH.")
-endif()
+# Use the internally built ZeroMQ
+set(ZeroMQ_LIBRARIES libzmq-static)
+set(ZeroMQ_FOUND TRUE)
 # --- End Add Dependencies ---
 
 set(FAISS_SRC
@@ -264,6 +260,11 @@ set(FAISS_HEADERS ${FAISS_HEADERS} PARENT_SCOPE)
 
 add_library(faiss ${FAISS_SRC})
 
+# Add ZeroMQ and msgpack include directories to faiss target
+get_filename_component(ZMQ_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../libzmq/include ABSOLUTE)
+get_filename_component(MSGPACK_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../msgpack-c/include ABSOLUTE)
+target_include_directories(faiss PRIVATE ${ZMQ_INCLUDE_DIR} ${MSGPACK_INCLUDE_DIR})
+
 add_library(faiss_avx2 ${FAISS_SRC})
 if(NOT FAISS_OPT_LEVEL STREQUAL "avx2" AND NOT FAISS_OPT_LEVEL STREQUAL "avx512" AND NOT FAISS_OPT_LEVEL STREQUAL "avx512_spr")
   set_target_properties(faiss_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
@@ -509,3 +510,7 @@ install(FILES ${PROJECT_BINARY_DIR}/cmake/faiss-config.cmake
 install(EXPORT faiss-targets
   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/faiss
 )
+
+# Link the libraries
+# msgpack-c is header-only with MSGPACK_NO_BOOST, no need to link
+target_link_libraries(faiss PRIVATE ${FAISS_DEPS})

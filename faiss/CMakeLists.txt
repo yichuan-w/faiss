@@ -93,6 +93,45 @@ set(FAISS_SRC
   utils/distances_fused/avx512.cpp
   utils/distances_fused/distances_fused.cpp
   utils/distances_fused/simdlib_based.cpp
+  
+  # Additional index types required by Python bindings
+  # These are referenced in SWIG interface and cannot be easily removed
+  IndexBinary.cpp
+  IndexBinaryFlat.cpp
+  IndexBinaryFromFloat.cpp
+  IndexBinaryHash.cpp
+  IndexBinaryIVF.cpp
+  IndexBinaryHNSW.cpp
+  IndexNNDescent.cpp
+  impl/NNDescent.cpp
+  IndexNSG.cpp
+  impl/NSG.cpp
+  IndexLSH.cpp
+  IndexLattice.cpp
+  impl/lattice_Zn.cpp
+  Index2Layer.cpp
+  IndexIVFPQR.cpp
+  IndexIVFSpectralHash.cpp
+  IndexScalarQuantizer.cpp
+  IndexAdditiveQuantizer.cpp
+  impl/AdditiveQuantizer.cpp
+  impl/ResidualQuantizer.cpp
+  impl/LocalSearchQuantizer.cpp
+  impl/ProductAdditiveQuantizer.cpp
+  IndexAdditiveQuantizerFastScan.cpp
+  IndexIVFAdditiveQuantizerFastScan.cpp
+  IndexIVFAdditiveQuantizer.cpp
+  IndexIVFIndependentQuantizer.cpp
+  IndexRowwiseMinMax.cpp
+  IndexRaBitQ.cpp
+  IndexIVFRaBitQ.cpp
+  impl/RaBitQuantizer.cpp
+  
+  # Additional files required for complete Python bindings
+  impl/PolysemousTraining.cpp
+  IndexNeuralNetCodec.cpp
+  utils/NeuralNet.cpp
+  impl/residual_quantizer_encode_steps.cpp
 )
 
 set(FAISS_HEADERS

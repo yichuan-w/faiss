@@ -52,15 +52,19 @@ endmacro()
 
 # CMake's SWIG wrappers only allow tweaking certain settings at source level, so
 # we duplicate the source in order to override the module name.
-configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_avx2.swig COPYONLY)
-configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_avx512.swig COPYONLY)
-configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_avx512_spr.swig COPYONLY)
+if(FAISS_BUILD_AVX_VERSIONS)
+  configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_avx2.swig COPYONLY)
+  configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_avx512.swig COPYONLY)
+  configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_avx512_spr.swig COPYONLY)
+endif()
 configure_file(swigfaiss.swig ${CMAKE_CURRENT_SOURCE_DIR}/swigfaiss_sve.swig COPYONLY)
 
 configure_swigfaiss(swigfaiss.swig)
-configure_swigfaiss(swigfaiss_avx2.swig)
-configure_swigfaiss(swigfaiss_avx512.swig)
-configure_swigfaiss(swigfaiss_avx512_spr.swig)
+if(FAISS_BUILD_AVX_VERSIONS)
+  configure_swigfaiss(swigfaiss_avx2.swig)
+  configure_swigfaiss(swigfaiss_avx512.swig)
+  configure_swigfaiss(swigfaiss_avx512_spr.swig)
+endif()
 configure_swigfaiss(swigfaiss_sve.swig)
 configure_swigfaiss(faiss_example_external_module.swig)
 
@@ -70,12 +74,14 @@ if(TARGET faiss)
   foreach(h ${FAISS_HEADERS})
     list(APPEND SWIG_MODULE_swigfaiss_EXTRA_DEPS
       "${faiss_SOURCE_DIR}/faiss/${h}")
-    list(APPEND SWIG_MODULE_swigfaiss_avx2_EXTRA_DEPS
-      "${faiss_SOURCE_DIR}/faiss/${h}")
-    list(APPEND SWIG_MODULE_swigfaiss_avx512_EXTRA_DEPS
-      "${faiss_SOURCE_DIR}/faiss/${h}")
-    list(APPEND SWIG_MODULE_swigfaiss_avx512_spr_EXTRA_DEPS
-      "${faiss_SOURCE_DIR}/faiss/${h}")
+    if(FAISS_BUILD_AVX_VERSIONS)
+      list(APPEND SWIG_MODULE_swigfaiss_avx2_EXTRA_DEPS
+        "${faiss_SOURCE_DIR}/faiss/${h}")
+      list(APPEND SWIG_MODULE_swigfaiss_avx512_EXTRA_DEPS
+        "${faiss_SOURCE_DIR}/faiss/${h}")
+      list(APPEND SWIG_MODULE_swigfaiss_avx512_spr_EXTRA_DEPS
+        "${faiss_SOURCE_DIR}/faiss/${h}")
+    endif()
     list(APPEND SWIG_MODULE_swigfaiss_sve_EXTRA_DEPS
       "${faiss_SOURCE_DIR}/faiss/${h}")
     list(APPEND SWIG_MODULE_faiss_example_external_module_EXTRA_DEPS
@@ -85,12 +91,14 @@ if(TARGET faiss)
     foreach(h ${FAISS_GPU_HEADERS})
       list(APPEND SWIG_MODULE_swigfaiss_EXTRA_DEPS
         "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
-      list(APPEND SWIG_MODULE_swigfaiss_avx2_EXTRA_DEPS
-        "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
-      list(APPEND SWIG_MODULE_swigfaiss_avx512_EXTRA_DEPS
-        "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
-      list(APPEND SWIG_MODULE_swigfaiss_avx512_spr_EXTRA_DEPS
-        "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
+      if(FAISS_BUILD_AVX_VERSIONS)
+        list(APPEND SWIG_MODULE_swigfaiss_avx2_EXTRA_DEPS
+          "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
+        list(APPEND SWIG_MODULE_swigfaiss_avx512_EXTRA_DEPS
+          "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
+        list(APPEND SWIG_MODULE_swigfaiss_avx512_spr_EXTRA_DEPS
+          "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
+      endif()
       list(APPEND SWIG_MODULE_faiss_example_external_module_EXTRA_DEPS
         "${faiss_SOURCE_DIR}/faiss/gpu-rocm/${h}")
     endforeach()
@@ -98,12 +106,14 @@ if(TARGET faiss)
     foreach(h ${FAISS_GPU_HEADERS})
       list(APPEND SWIG_MODULE_swigfaiss_EXTRA_DEPS
         "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
-      list(APPEND SWIG_MODULE_swigfaiss_avx2_EXTRA_DEPS
-        "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
-      list(APPEND SWIG_MODULE_swigfaiss_avx512_EXTRA_DEPS
-        "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
-      list(APPEND SWIG_MODULE_swigfaiss_avx512_spr_EXTRA_DEPS
-        "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
+      if(FAISS_BUILD_AVX_VERSIONS)
+        list(APPEND SWIG_MODULE_swigfaiss_avx2_EXTRA_DEPS
+          "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
+        list(APPEND SWIG_MODULE_swigfaiss_avx512_EXTRA_DEPS
+          "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
+        list(APPEND SWIG_MODULE_swigfaiss_avx512_spr_EXTRA_DEPS
+          "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
+      endif()
       list(APPEND SWIG_MODULE_swigfaiss_sve_EXTRA_DEPS
         "${faiss_SOURCE_DIR}/faiss/gpu/${h}")
       list(APPEND SWIG_MODULE_faiss_example_external_module_EXTRA_DEPS
@@ -130,41 +140,43 @@ endif()
 
 set_property(TARGET swigfaiss PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
 
-set_property(SOURCE swigfaiss_avx2.swig
-  PROPERTY SWIG_MODULE_NAME swigfaiss_avx2)
-swig_add_library(swigfaiss_avx2
-  TYPE SHARED
-  LANGUAGE python
-  SOURCES swigfaiss_avx2.swig
-)
-set_property(TARGET swigfaiss_avx2 PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
-if(NOT FAISS_OPT_LEVEL STREQUAL "avx2")
-  set_target_properties(swigfaiss_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
+if(FAISS_BUILD_AVX_VERSIONS)
+  set_property(SOURCE swigfaiss_avx2.swig
+    PROPERTY SWIG_MODULE_NAME swigfaiss_avx2)
+  swig_add_library(swigfaiss_avx2
+    TYPE SHARED
+    LANGUAGE python
+    SOURCES swigfaiss_avx2.swig
+  )
+  set_property(TARGET swigfaiss_avx2 PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
+  if(NOT FAISS_OPT_LEVEL STREQUAL "avx2")
+    set_target_properties(swigfaiss_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  endif()
 
-set_property(SOURCE swigfaiss_avx512.swig
-  PROPERTY SWIG_MODULE_NAME swigfaiss_avx512)
-swig_add_library(swigfaiss_avx512
-  TYPE SHARED
-  LANGUAGE python
-  SOURCES swigfaiss_avx512.swig
-)
-set_property(TARGET swigfaiss_avx512 PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
-if(NOT FAISS_OPT_LEVEL STREQUAL "avx512")
-  set_target_properties(swigfaiss_avx512 PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
+  set_property(SOURCE swigfaiss_avx512.swig
+    PROPERTY SWIG_MODULE_NAME swigfaiss_avx512)
+  swig_add_library(swigfaiss_avx512
+    TYPE SHARED
+    LANGUAGE python
+    SOURCES swigfaiss_avx512.swig
+  )
+  set_property(TARGET swigfaiss_avx512 PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
+  if(NOT FAISS_OPT_LEVEL STREQUAL "avx512")
+    set_target_properties(swigfaiss_avx512 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  endif()
 
-set_property(SOURCE swigfaiss_avx512_spr.swig
-  PROPERTY SWIG_MODULE_NAME swigfaiss_avx512_spr)
-swig_add_library(swigfaiss_avx512_spr
-  TYPE SHARED
-  LANGUAGE python
-  SOURCES swigfaiss_avx512_spr.swig
-)
-set_property(TARGET swigfaiss_avx512_spr PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
-if(NOT FAISS_OPT_LEVEL STREQUAL "avx512_spr")
-  set_target_properties(swigfaiss_avx512_spr PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
+  set_property(SOURCE swigfaiss_avx512_spr.swig
+    PROPERTY SWIG_MODULE_NAME swigfaiss_avx512_spr)
+  swig_add_library(swigfaiss_avx512_spr
+    TYPE SHARED
+    LANGUAGE python
+    SOURCES swigfaiss_avx512_spr.swig
+  )
+  set_property(TARGET swigfaiss_avx512_spr PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
+  if(NOT FAISS_OPT_LEVEL STREQUAL "avx512_spr")
+    set_target_properties(swigfaiss_avx512_spr PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  endif()
+endif() # FAISS_BUILD_AVX_VERSIONS
 
 set_property(SOURCE swigfaiss_sve.swig
   PROPERTY SWIG_MODULE_NAME swigfaiss_sve)
@@ -190,17 +202,21 @@ set_property(TARGET faiss_example_external_module PROPERTY SWIG_COMPILE_OPTIONS 
 if(NOT WIN32)
   # NOTE: Python does not recognize the dylib extension.
   set_target_properties(swigfaiss PROPERTIES SUFFIX .so)
-  set_target_properties(swigfaiss_avx2 PROPERTIES SUFFIX .so)
-  set_target_properties(swigfaiss_avx512 PROPERTIES SUFFIX .so)
-  set_target_properties(swigfaiss_avx512_spr PROPERTIES SUFFIX .so)
+  if(FAISS_BUILD_AVX_VERSIONS)
+    set_target_properties(swigfaiss_avx2 PROPERTIES SUFFIX .so)
+    set_target_properties(swigfaiss_avx512 PROPERTIES SUFFIX .so)
+    set_target_properties(swigfaiss_avx512_spr PROPERTIES SUFFIX .so)
+  endif()
   set_target_properties(swigfaiss_sve PROPERTIES SUFFIX .so)
   set_target_properties(faiss_example_external_module PROPERTIES SUFFIX .so)
 else()
   # we need bigobj for the swig wrapper
   target_compile_options(swigfaiss PRIVATE /bigobj)
-  target_compile_options(swigfaiss_avx2 PRIVATE /bigobj)
-  target_compile_options(swigfaiss_avx512 PRIVATE /bigobj)
-  target_compile_options(swigfaiss_avx512_spr PRIVATE /bigobj)
+  if(FAISS_BUILD_AVX_VERSIONS)
+    target_compile_options(swigfaiss_avx2 PRIVATE /bigobj)
+    target_compile_options(swigfaiss_avx512 PRIVATE /bigobj)
+    target_compile_options(swigfaiss_avx512_spr PRIVATE /bigobj)
+  endif()
   target_compile_options(swigfaiss_sve PRIVATE /bigobj)
   target_compile_options(faiss_example_external_module PRIVATE /bigobj)
 endif()
@@ -208,9 +224,11 @@ endif()
 if(FAISS_ENABLE_GPU)
   if(FAISS_ENABLE_ROCM)
     target_link_libraries(swigfaiss PRIVATE hip::host)
-    target_link_libraries(swigfaiss_avx2 PRIVATE hip::host)
-    target_link_libraries(swigfaiss_avx512 PRIVATE hip::host)
-    target_link_libraries(swigfaiss_avx512_spr PRIVATE hip::host)
+    if(FAISS_BUILD_AVX_VERSIONS)
+      target_link_libraries(swigfaiss_avx2 PRIVATE hip::host)
+      target_link_libraries(swigfaiss_avx512 PRIVATE hip::host)
+      target_link_libraries(swigfaiss_avx512_spr PRIVATE hip::host)
+    endif()
     target_link_libraries(faiss_example_external_module PRIVATE hip::host)
   else()
     find_package(CUDAToolkit REQUIRED)
@@ -218,9 +236,11 @@ if(FAISS_ENABLE_GPU)
       find_package(cuvs)
     endif()
     target_link_libraries(swigfaiss PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
-    target_link_libraries(swigfaiss_avx2 PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
-    target_link_libraries(swigfaiss_avx512 PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
-    target_link_libraries(swigfaiss_avx512_spr PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
+    if(FAISS_BUILD_AVX_VERSIONS)
+      target_link_libraries(swigfaiss_avx2 PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
+      target_link_libraries(swigfaiss_avx512 PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
+      target_link_libraries(swigfaiss_avx512_spr PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
+    endif()
     target_link_libraries(swigfaiss_sve PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs>)
   endif()
 endif()
@@ -234,26 +254,28 @@ target_link_libraries(swigfaiss PRIVATE
   OpenMP::OpenMP_CXX
 )
 
-target_link_libraries(swigfaiss_avx2 PRIVATE
-  faiss_avx2
-  Python::Module
-  Python::NumPy
-  OpenMP::OpenMP_CXX
-)
+if(FAISS_BUILD_AVX_VERSIONS)
+  target_link_libraries(swigfaiss_avx2 PRIVATE
+    faiss_avx2
+    Python::Module
+    Python::NumPy
+    OpenMP::OpenMP_CXX
+  )
 
-target_link_libraries(swigfaiss_avx512 PRIVATE
-  faiss_avx512
-  Python::Module
-  Python::NumPy
-  OpenMP::OpenMP_CXX
-)
+  target_link_libraries(swigfaiss_avx512 PRIVATE
+    faiss_avx512
+    Python::Module
+    Python::NumPy
+    OpenMP::OpenMP_CXX
+  )
 
-target_link_libraries(swigfaiss_avx512_spr PRIVATE
-  faiss_avx512_spr
-  Python::Module
-  Python::NumPy
-  OpenMP::OpenMP_CXX
-)
+  target_link_libraries(swigfaiss_avx512_spr PRIVATE
+    faiss_avx512_spr
+    Python::Module
+    Python::NumPy
+    OpenMP::OpenMP_CXX
+  )
+endif()
 
 target_link_libraries(swigfaiss_sve PRIVATE
   faiss_sve
@@ -273,9 +295,11 @@ target_link_libraries(faiss_example_external_module PRIVATE
 # Hack so that python_callbacks.h can be included as
 # `#include <faiss/python/python_callbacks.h>`.
 target_include_directories(swigfaiss PRIVATE ${PROJECT_SOURCE_DIR}/../..)
-target_include_directories(swigfaiss_avx2 PRIVATE ${PROJECT_SOURCE_DIR}/../..)
-target_include_directories(swigfaiss_avx512 PRIVATE ${PROJECT_SOURCE_DIR}/../..)
-target_include_directories(swigfaiss_avx512_spr PRIVATE ${PROJECT_SOURCE_DIR}/../..)
+if(FAISS_BUILD_AVX_VERSIONS)
+  target_include_directories(swigfaiss_avx2 PRIVATE ${PROJECT_SOURCE_DIR}/../..)
+  target_include_directories(swigfaiss_avx512 PRIVATE ${PROJECT_SOURCE_DIR}/../..)
+  target_include_directories(swigfaiss_avx512_spr PRIVATE ${PROJECT_SOURCE_DIR}/../..)
+endif()
 target_include_directories(swigfaiss_sve PRIVATE ${PROJECT_SOURCE_DIR}/../..)
 target_include_directories(faiss_example_external_module PRIVATE ${PROJECT_SOURCE_DIR}/../..)
 
@@ -300,9 +324,11 @@ target_include_directories(faiss_python_callbacks PRIVATE ${PROJECT_SOURCE_DIR}/
 target_include_directories(faiss_python_callbacks PRIVATE ${Python_INCLUDE_DIRS})
 
 target_link_libraries(swigfaiss PRIVATE faiss_python_callbacks)
-target_link_libraries(swigfaiss_avx2 PRIVATE faiss_python_callbacks)
-target_link_libraries(swigfaiss_avx512 PRIVATE faiss_python_callbacks)
-target_link_libraries(swigfaiss_avx512_spr PRIVATE faiss_python_callbacks)
+if(FAISS_BUILD_AVX_VERSIONS)
+  target_link_libraries(swigfaiss_avx2 PRIVATE faiss_python_callbacks)
+  target_link_libraries(swigfaiss_avx512 PRIVATE faiss_python_callbacks)
+  target_link_libraries(swigfaiss_avx512_spr PRIVATE faiss_python_callbacks)
+endif()
 target_link_libraries(swigfaiss_sve PRIVATE faiss_python_callbacks)
 target_link_libraries(faiss_example_external_module PRIVATE faiss_python_callbacks)
 
@@ -320,29 +346,29 @@ file(COPY ${PROJECT_SOURCE_DIR}/../../contrib  DESTINATION .)
 # ====================================================================
 # =========               BEGIN LEANN PROJECT PATCH                =========
 # ====================================================================
-# 模仿 diskann 方案，将所有 Python 组件作为“兄弟模块”安装到主包目录中
+# Following diskann approach, install all Python components as sibling modules in the main package directory
 
-# 1. 安装 C++ 扩展，目标是主包根目录 leann_backend_hnsw
+# 1. Install C++ extension, target is main package root directory leann_backend_hnsw
 install(TARGETS swigfaiss
     DESTINATION leann_backend_hnsw
 )
 
-# 2. 安装 SWIG 包装器，并重命名为 faiss.py，目标是主包根目录
+# 2. Install SWIG wrapper, rename to faiss.py, target is main package root directory
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swigfaiss.py
     DESTINATION leann_backend_hnsw
     RENAME faiss.py
 )
 
-# 3. 安装所有静态辅助 .py 文件，目标是主包根目录
-#    注意：我们不再需要 faiss 自己的 __init__.py 文件了
+# 3. Install all static helper .py files, target is main package root directory
+#    Note: We no longer need faiss's own __init__.py file
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/loader.py
     ${CMAKE_CURRENT_SOURCE_DIR}/class_wrappers.py
-    ${CMAKE_CURRENT_SOURCE_DIR}/gpu_wrappers.py
-    ${CMAKE_CURRENT_SOURCE_DIR}/extra_wrappers.py
     ${CMAKE_CURRENT_SOURCE_DIR}/array_conversions.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/extra_wrappers.py
     DESTINATION leann_backend_hnsw
 )
+
 # ====================================================================
 # =========                END LEANN PROJECT PATCH                 =========
 # ====================================================================

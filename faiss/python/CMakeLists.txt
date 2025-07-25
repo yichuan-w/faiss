@@ -303,9 +303,31 @@ endif()
 target_include_directories(swigfaiss_sve PRIVATE ${PROJECT_SOURCE_DIR}/../..)
 target_include_directories(faiss_example_external_module PRIVATE ${PROJECT_SOURCE_DIR}/../..)
 
-find_package(Python REQUIRED
-  COMPONENTS Development NumPy
-)
+# Try to find Python in different ways for better compatibility
+# First check if Python was already found by parent CMakeLists.txt
+message(STATUS "Faiss Python CMake: Python_FOUND=${Python_FOUND}")
+message(STATUS "Faiss Python CMake: Python_EXECUTABLE=${Python_EXECUTABLE}")
+message(STATUS "Faiss Python CMake: Python_INCLUDE_DIRS=${Python_INCLUDE_DIRS}")
+message(STATUS "Faiss Python CMake: Python_NumPy_INCLUDE_DIRS=${Python_NumPy_INCLUDE_DIRS}")
+
+if(NOT Python_FOUND)
+  find_package(Python COMPONENTS Interpreter Development.Module NumPy)
+endif()
+if(NOT Python_FOUND)
+  find_package(Python3 COMPONENTS Interpreter Development.Module NumPy)
+  if(Python3_FOUND)
+    set(Python_FOUND ${Python3_FOUND})
+    set(Python_VERSION ${Python3_VERSION})
+    set(Python_EXECUTABLE ${Python3_EXECUTABLE})
+    set(Python_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
+    set(Python_LIBRARIES ${Python3_LIBRARIES})
+    set(Python_NumPy_INCLUDE_DIRS ${Python3_NumPy_INCLUDE_DIRS})
+  endif()
+endif()
+
+if(NOT Python_FOUND)
+  message(FATAL_ERROR "Could not find Python with NumPy")
+endif()
 
 add_library(faiss_python_callbacks EXCLUDE_FROM_ALL
   python_callbacks.cpp

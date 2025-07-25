@@ -101,6 +101,10 @@ if(FAISS_ENABLE_GPU)
 endif()
 
 if(FAISS_ENABLE_PYTHON)
+  # Find Python here so it's available for the python subdirectory
+  if(NOT Python_FOUND)
+    find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
+  endif()
   add_subdirectory(faiss/python)
 endif()
 

@@ -7,27 +7,45 @@
 # Use the system's ZeroMQ instead of building from source
 find_package(PkgConfig REQUIRED)
 
+# Debug: Print pkg-config information
+message(STATUS "=== Faiss ZeroMQ Detection Debug ===")
+execute_process(COMMAND pkg-config --list-all OUTPUT_VARIABLE PKG_CONFIG_ALL)
+message(STATUS "All pkg-config modules: ${PKG_CONFIG_ALL}")
+
 # Try to find ZeroMQ using pkg-config
 pkg_check_modules(ZeroMQ QUIET libzmq)
+message(STATUS "libzmq pkg-config result: ZeroMQ_FOUND=${ZeroMQ_FOUND}")
+
 if(NOT ZeroMQ_FOUND)
     pkg_check_modules(ZeroMQ QUIET libzmq3)
+    message(STATUS "libzmq3 pkg-config result: ZeroMQ_FOUND=${ZeroMQ_FOUND}")
 endif()
 
 if(NOT ZeroMQ_FOUND)
     # Fallback: try to find ZeroMQ manually
+    message(STATUS "Trying manual ZeroMQ detection...")
+    
     find_path(ZeroMQ_INCLUDE_DIRS zmq.h
-        PATHS /usr/include /usr/local/include
+        PATHS /usr/include /usr/local/include /opt/homebrew/include
         DOC "ZeroMQ include directory")
+    message(STATUS "ZeroMQ_INCLUDE_DIRS: ${ZeroMQ_INCLUDE_DIRS}")
     
     find_library(ZeroMQ_LIBRARIES
         NAMES zmq
-        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib
+        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib /opt/homebrew/lib
         DOC "ZeroMQ library")
+    message(STATUS "ZeroMQ_LIBRARIES: ${ZeroMQ_LIBRARIES}")
     
     if(ZeroMQ_INCLUDE_DIRS AND ZeroMQ_LIBRARIES)
         set(ZeroMQ_FOUND TRUE)
         message(STATUS "Found ZeroMQ manually: ${ZeroMQ_LIBRARIES}")
     else()
+        # Additional debug info
+        message(STATUS "=== Manual detection failed ===")
+        execute_process(COMMAND find /usr -name "zmq.h" 2>/dev/null OUTPUT_VARIABLE ZMQ_HEADERS)
+        message(STATUS "Found zmq.h files: ${ZMQ_HEADERS}")
+        execute_process(COMMAND find /usr -name "libzmq*" 2>/dev/null OUTPUT_VARIABLE ZMQ_LIBS)
+        message(STATUS "Found libzmq files: ${ZMQ_LIBS}")
         message(FATAL_ERROR "ZeroMQ not found. Please install libzmq3-dev package.")
     endif()
 endif()

@@ -6,7 +6,18 @@
 # --- Add ZMQ and MessagePack Dependencies (Add these lines at the top) ---
 # Use the system's ZeroMQ instead of building from source
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(ZeroMQ REQUIRED libzmq)
+
+# Try multiple ways to find ZeroMQ
+find_package(ZeroMQ QUIET)
+if(NOT ZeroMQ_FOUND)
+    pkg_check_modules(ZeroMQ QUIET libzmq)
+    if(NOT ZeroMQ_FOUND)
+        pkg_check_modules(ZeroMQ QUIET libzmq3)
+        if(NOT ZeroMQ_FOUND)
+            message(FATAL_ERROR "ZeroMQ not found. Please install libzmq3-dev package.")
+        endif()
+    endif()
+endif()
 set(ZeroMQ_LIBRARIES ${ZeroMQ_LINK_LIBRARIES})
 set(ZeroMQ_INCLUDE_DIRS ${ZeroMQ_INCLUDE_DIRS})
 set(ZeroMQ_FOUND TRUE)

@@ -7,15 +7,28 @@
 # Use the system's ZeroMQ instead of building from source
 find_package(PkgConfig REQUIRED)
 
-# Try multiple ways to find ZeroMQ
-find_package(ZeroMQ QUIET)
+# Try to find ZeroMQ using pkg-config
+pkg_check_modules(ZeroMQ QUIET libzmq)
 if(NOT ZeroMQ_FOUND)
-    pkg_check_modules(ZeroMQ QUIET libzmq)
-    if(NOT ZeroMQ_FOUND)
-        pkg_check_modules(ZeroMQ QUIET libzmq3)
-        if(NOT ZeroMQ_FOUND)
-            message(FATAL_ERROR "ZeroMQ not found. Please install libzmq3-dev package.")
-        endif()
+    pkg_check_modules(ZeroMQ QUIET libzmq3)
+endif()
+
+if(NOT ZeroMQ_FOUND)
+    # Fallback: try to find ZeroMQ manually
+    find_path(ZeroMQ_INCLUDE_DIRS zmq.h
+        PATHS /usr/include /usr/local/include
+        DOC "ZeroMQ include directory")
+    
+    find_library(ZeroMQ_LIBRARIES
+        NAMES zmq
+        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib
+        DOC "ZeroMQ library")
+    
+    if(ZeroMQ_INCLUDE_DIRS AND ZeroMQ_LIBRARIES)
+        set(ZeroMQ_FOUND TRUE)
+        message(STATUS "Found ZeroMQ manually: ${ZeroMQ_LIBRARIES}")
+    else()
+        message(FATAL_ERROR "ZeroMQ not found. Please install libzmq3-dev package.")
     endif()
 endif()
 set(ZeroMQ_LIBRARIES ${ZeroMQ_LINK_LIBRARIES})

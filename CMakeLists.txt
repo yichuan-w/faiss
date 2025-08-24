@@ -114,6 +114,11 @@ if(FAISS_ENABLE_EXTRAS)
   add_subdirectory(tutorial/cpp)
 endif()
 
+# Standalone tool: HNSW shard merger (physical merge of per-partition HNSW graphs)
+add_executable(hnsw_merge_shards EXCLUDE_FROM_ALL demo/hnsw_merge_shards.cpp)
+target_link_libraries(hnsw_merge_shards PRIVATE faiss)
+
+
 # CTest must be included in the top level to enable `make test` target.
 include(CTest)
 if(BUILD_TESTING)

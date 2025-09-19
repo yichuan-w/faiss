@@ -188,6 +188,22 @@ void hnsw_add_vertices(
 
                 std::unique_ptr<DistanceComputer> dis(
                         storage_distance_computer(index_hnsw.storage));
+                if (index_hnsw.is_recompute) {
+                    // Use ZMQ-based distance computer during add when recompute is enabled
+                    // Read port from environment to coordinate with Python server
+                    int zmq_port_env = 5557;
+                    if (const char* env_p = std::getenv("LEANN_ZMQ_PORT")) {
+                        int parsed = atoi(env_p);
+                        if (parsed > 0) {
+                            zmq_port_env = parsed;
+                        }
+                    }
+                    dis.reset(new ZmqDistanceComputer(
+                            index_hnsw.d,
+                            index_hnsw.metric_type,
+                            index_hnsw.metric_arg,
+                            zmq_port_env));
+                }
                 int prev_display =
                         verbose && omp_get_thread_num() == 0 ? 0 : -1;
                 size_t counter = 0;
@@ -458,9 +474,21 @@ void IndexHNSW::range_search(
 }
 
 void IndexHNSW::add(idx_t n, const float* x) {
-    FAISS_THROW_IF_NOT_MSG(
-            storage,
-            "Please use IndexHNSWFlat (or variants) instead of IndexHNSW directly");
+    // Allow add without storage when in recompute mode (edges built via ZMQ).
+    // To satisfy internal invariants, attach a minimal in-memory storage if missing.
+    if (!storage) {
+        FAISS_THROW_IF_NOT_MSG(
+                is_recompute,
+                "Please use IndexHNSWFlat (or variants) instead of IndexHNSW directly");
+        // Create a minimal IndexFlat storage so internal code can rely on storage
+        if (metric_type == METRIC_L2) {
+            storage = new IndexFlatL2(d);
+        } else {
+            storage = new IndexFlat(d, metric_type);
+        }
+        own_fields = true;
+        is_trained = true;
+    }
     FAISS_THROW_IF_NOT(is_trained);
     int n0 = ntotal;
     storage->add(n, x);

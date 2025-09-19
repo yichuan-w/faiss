@@ -610,17 +610,27 @@ void ZmqDistanceComputer::distances_batch(
 
     // Process remote nodes via ZMQ if any
     if (!remote_nodes.empty()) {
-        // Call the original ZMQ batch function
         std::vector<float> fetched_distances;
         bool success = fetch_distances_zmq(
                 remote_nodes, query.data(), d, fetched_distances, zmq_port);
-        assert(success);
-        assert(fetched_distances.size() == remote_nodes.size());
+
+        if (!success) {
+            FAISS_THROW_FMT(
+                    "ZMQ distance RPC failed (port %d) for %zu ids",
+                    zmq_port,
+                    remote_nodes.size());
+        }
+        if (fetched_distances.size() != remote_nodes.size()) {
+            FAISS_THROW_FMT(
+                    "ZMQ distance RPC size mismatch: got %zu expected %zu",
+                    fetched_distances.size(),
+                    remote_nodes.size());
+        }
 
         for (size_t j = 0; j < remote_nodes.size(); ++j) {
             distances_out[remote_orig_indices[j]] = fetched_distances[j];
         }
-        fetch_count += remote_nodes.size(); // Count these as fetches
+        fetch_count += remote_nodes.size();
     }
 
     // timing

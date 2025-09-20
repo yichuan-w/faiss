@@ -186,8 +186,15 @@ void hnsw_add_vertices(
             {
                 VisitedTable vt(ntotal);
 
-                std::unique_ptr<DistanceComputer> dis(
-                        storage_distance_computer(index_hnsw.storage));
+                std::unique_ptr<DistanceComputer> dis;
+                if (index_hnsw.is_recompute) {
+                    dis.reset(new ZmqDistanceComputer(
+                            index_hnsw.d,
+                            index_hnsw.metric_type,
+                            index_hnsw.metric_arg));
+                } else {
+                    dis.reset(storage_distance_computer(index_hnsw.storage));
+                }
                 int prev_display =
                         verbose && omp_get_thread_num() == 0 ? 0 : -1;
                 size_t counter = 0;

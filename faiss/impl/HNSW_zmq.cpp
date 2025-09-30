@@ -420,9 +420,11 @@ bool fetch_embeddings_zmq(
 }
 
 const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
-    auto cached = cached_vectors.find(id);
-    if (cached != cached_vectors.end()) {
-        return cached->second.data();
+    if (kEnableZmqEmbeddingCache) {
+        auto cached = cached_vectors.find(id);
+        if (cached != cached_vectors.end()) {
+            return cached->second.data();
+        }
     }
 
     std::vector<uint32_t> ids_to_fetch = {(uint32_t)id};
@@ -435,13 +437,18 @@ const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
         return nullptr;
     }
 
-    auto [it, inserted] =
-            cached_vectors.emplace(id, std::move(fetched_embeddings[0]));
-    FAISS_ASSERT(it->second.size() == d);
+    std::vector<float> fetched = std::move(fetched_embeddings[0]);
+    FAISS_ASSERT(fetched.size() == d);
 
     fetch_count++;
 
-    return it->second.data();
+    if (kEnableZmqEmbeddingCache) {
+        auto [it, inserted] = cached_vectors.emplace(id, std::move(fetched));
+        return it->second.data();
+    } else {
+        last_fetched_vector = std::move(fetched);
+        return last_fetched_vector.data();
+    }
 }
 
 // --- ZMQ Distance Calculation Function (Using MessagePack) ---

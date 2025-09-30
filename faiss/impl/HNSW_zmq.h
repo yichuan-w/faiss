@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <faiss/Index.h>
@@ -33,7 +34,7 @@ struct ZmqDistanceComputer : DistanceComputer {
     std::unique_ptr<DistanceComputer> storage_dc_search;
     std::vector<float> query;
 
-    std::vector<float> last_fetched_zmq_vector;
+    mutable std::unordered_map<idx_t, std::vector<float>> cached_vectors;
 
     const float* get_query() override {
         return query.data();
@@ -47,8 +48,7 @@ struct ZmqDistanceComputer : DistanceComputer {
             : d(dim), metric_type(mt), metric_arg(marg), zmq_port(zmq_port) {
         FAISS_THROW_IF_NOT_MSG(d > 0, "Dimension must be positive");
         query.resize(d);
-        last_fetched_zmq_vector.resize(d); // Preallocate
-        reset_fetch_count();               // Initialize count
+        reset_fetch_count(); // Initialize count
         printf("ZmqDistanceComputer initialized: d=%zu, metric=%d\n",
                d,
                (int)mt);
@@ -65,7 +65,6 @@ struct ZmqDistanceComputer : DistanceComputer {
                                         storage_ref->get_distance_computer())
                               : storage_ref->get_distance_computer()) {
         query.resize(d);
-        last_fetched_zmq_vector.resize(d); // Preallocate
         FAISS_THROW_IF_NOT_MSG(
                 storage != nullptr,
                 "Storage cannot be null for ZmqDistanceComputer");
@@ -78,6 +77,7 @@ struct ZmqDistanceComputer : DistanceComputer {
 
     void reset_fetch_count() override {
         fetch_count = 0;
+        cached_vectors.clear();
     }
 
     float operator()(idx_t i) override {
@@ -123,6 +123,7 @@ struct ZmqDistanceComputer : DistanceComputer {
     void set_query(const float* x) override {
         reset_fetch_count();
         memcpy(query.data(), x, d * sizeof(float));
+        cached_vectors.clear();
     }
     ~ZmqDistanceComputer() override = default;
 

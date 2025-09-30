@@ -420,63 +420,28 @@ bool fetch_embeddings_zmq(
 }
 
 const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
+    auto cached = cached_vectors.find(id);
+    if (cached != cached_vectors.end()) {
+        return cached->second.data();
+    }
+
     std::vector<uint32_t> ids_to_fetch = {(uint32_t)id};
-    std::vector<std::vector<float>>
-            fetched_embeddings; // fetch_embeddings_zmq expects this
-                                // structure
+    std::vector<std::vector<float>> fetched_embeddings;
 
     if (!fetch_embeddings_zmq(ids_to_fetch, fetched_embeddings, zmq_port)) {
-        // fprintf(stderr,
-        //         "!!! ERROR get_vector_zmq: fetch_embeddings_zmq call
-        //         failed for ID %ld !!!\n", (long)id);
-        // Fill member with NaN to indicate failure?
-        std::fill(
-                last_fetched_zmq_vector.begin(),
-                last_fetched_zmq_vector.end(),
-                std::numeric_limits<float>::quiet_NaN());
-        return nullptr; // Indicate failure upstream
+        return nullptr;
     }
     if (fetched_embeddings.empty() || fetched_embeddings[0].size() != d) {
-        // fprintf(stderr,
-        //         "!!! ERROR get_vector_zmq: fetch_embeddings_zmq returned
-        //         incorrect data for ID %ld !!!\n", (long)id);
-        std::fill(
-                last_fetched_zmq_vector.begin(),
-                last_fetched_zmq_vector.end(),
-                std::numeric_limits<float>::quiet_NaN());
         return nullptr;
     }
 
-    // --- Copy fetched data to member variable ---
-    // fetched_embeddings[0] contains the vector data
-    FAISS_ASSERT(fetched_embeddings[0].size() == d);
-    memcpy(last_fetched_zmq_vector.data(),
-           fetched_embeddings[0].data(),
-           d * sizeof(float));
+    auto [it, inserted] =
+            cached_vectors.emplace(id, std::move(fetched_embeddings[0]));
+    FAISS_ASSERT(it->second.size() == d);
 
-    // ---- Addition: Increment fetch count on success ----
     fetch_count++;
-    // ---- End Addition ----
 
-    // --- Log values RIGHT BEFORE returning pointer ---
-    const float* return_ptr = last_fetched_zmq_vector.data();
-    // bool has_nan_before_return = false;
-    // printf("DEBUG get_vector_zmq: Fetched ID %ld. Values BEFORE return
-    // (ptr %p) [0..%d]: ",
-    //        (long)id,
-    //        (void*)return_ptr,
-    //        (int)std::min((size_t)4, d - 1));
-    // for (size_t k = 0; k < std::min((size_t)5, d); ++k) {
-    //     printf("%.6f ", return_ptr[k]);
-    // if (std::isnan(return_ptr[k]) || std::isinf(return_ptr[k]))
-    //         has_nan_before_return = true;
-    // }
-    // printf("%s\n",
-    //        has_nan_before_return ? "!!! HAS NaN/Inf BEFORE RETURN !!!"
-    //                              : "(OK Before Return)");
-    // -------------------------------------------
-
-    return return_ptr; // Return pointer to member data
+    return it->second.data();
 }
 
 // --- ZMQ Distance Calculation Function (Using MessagePack) ---

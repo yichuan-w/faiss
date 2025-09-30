@@ -882,17 +882,29 @@ int search_from_candidates_2(
         size_t begin, end;
         hnsw.neighbor_range(v0, level, &begin, &end);
 
+        std::vector<idx_t> to_eval;
+        to_eval.reserve(end - begin);
         for (size_t j = begin; j < end; j++) {
             int v1 = hnsw.neighbors[j];
-            if (v1 < 0)
+            if (v1 < 0) {
                 break;
+            }
             if (vt.visited[v1] == vt.visno + 1) {
-                // nothing to do
-            } else {
-                float d = qdis(v1);
+                continue;
+            }
+            to_eval.push_back(static_cast<idx_t>(v1));
+        }
+
+        if (!to_eval.empty()) {
+            std::vector<float> distances(to_eval.size());
+            qdis.distances_batch(to_eval, distances);
+
+            for (size_t idx = 0; idx < to_eval.size(); idx++) {
+                idx_t v1 = to_eval[idx];
+                float d = distances[idx];
+
                 candidates.push(v1, d);
 
-                // never seen before --> add to heap
                 if (vt.visited[v1] < vt.visno) {
                     if (nres < k) {
                         faiss::maxheap_push(++nres, D, I, d, v1);

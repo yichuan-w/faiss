@@ -513,9 +513,40 @@ void add_link(
         storage_idx_t src,
         storage_idx_t dest,
         int level,
-        bool keep_max_size_level0 = false) {
+        bool keep_max_size_level0 = false,
+        bool is_reverse_edge = false) {
     size_t begin, end;
     hnsw.neighbor_range(src, level, &begin, &end);
+
+    bool skip_rng = false;
+    if (level == 0) {
+        skip_rng = (!is_reverse_edge && hnsw.disable_rng_during_add) ||
+                (is_reverse_edge && hnsw.disable_reverse_prune);
+    }
+
+    if (skip_rng) {
+        size_t free_slot = end;
+        for (size_t i = begin; i < end; ++i) {
+            storage_idx_t current = hnsw.neighbors[i];
+            if (current == dest) {
+                return;
+            }
+            if (free_slot == end && current == -1) {
+                free_slot = i;
+            }
+        }
+
+        if (free_slot < end) {
+            hnsw.neighbors[free_slot] = dest;
+            return;
+        }
+
+        if (begin < end) {
+            hnsw.neighbors[begin] = dest;
+        }
+        return;
+    }
+
     if (hnsw.neighbors[end - 1] == -1) {
         // there is enough room, find a slot to add it
         size_t i = end;
@@ -750,7 +781,8 @@ void HNSW::add_links_starting_from(
                         pt_id,
                         other_id,
                         level,
-                        keep_max_size_level0);
+                        keep_max_size_level0,
+                        false);
             }
             neighbors_to_add.push_back(other_id);
             pass_first_node = true;
@@ -766,7 +798,13 @@ void HNSW::add_links_starting_from(
                     *this, ptdis, pt_id, other_id, level, keep_max_size_level0);
         } else {
             add_link(
-                    *this, ptdis, pt_id, other_id, level, keep_max_size_level0);
+                    *this,
+                    ptdis,
+                    pt_id,
+                    other_id,
+                    level,
+                    keep_max_size_level0,
+                    false);
         }
         neighbors_to_add.push_back(other_id);
         link_targets.pop();
@@ -780,7 +818,13 @@ void HNSW::add_links_starting_from(
                     *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
         } else {
             add_link(
-                    *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
+                    *this,
+                    ptdis,
+                    other_id,
+                    pt_id,
+                    level,
+                    keep_max_size_level0,
+                    true);
         }
         omp_unset_lock(&locks[other_id]);
     }

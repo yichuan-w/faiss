@@ -238,6 +238,20 @@ struct HNSW {
     /// use bounded queue during exploration
     bool search_bounded_queue = true;
 
+    /// optional knobs to speed up incremental add when embeddings are fetched
+    /// remotely; disabling RNG reduces distance recomputations at the cost of
+    /// graph quality. Exposed mainly for benchmarking.
+    bool disable_rng_during_add = false;
+    bool disable_reverse_prune = false;
+
+    void set_disable_rng_during_add(bool flag) {
+        disable_rng_during_add = flag;
+    }
+
+    void set_disable_reverse_prune(bool flag) {
+        disable_reverse_prune = flag;
+    }
+
     // methods that initialize the tree sizes
 
     /// initialize the assign_probas and cum_nneighbor_per_level to

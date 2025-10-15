@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdio>
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -76,6 +77,8 @@ class IndexHNSW;
 struct HNSW {
     /// internal storage of vectors (32 bits: this is expensive)
     using storage_idx_t = int32_t;
+
+    int zmq_port = 5557;
 
     struct Level0EdgeLocation {
         storage_idx_t node_id;
@@ -246,10 +249,18 @@ struct HNSW {
 
     void set_disable_rng_during_add(bool flag) {
         disable_rng_during_add = flag;
+        std::fprintf(
+                stderr,
+                "[HNSW RNG] set_disable_rng_during_add requested=%d\n",
+                flag ? 1 : 0);
     }
 
     void set_disable_reverse_prune(bool flag) {
         disable_reverse_prune = flag;
+        std::fprintf(
+                stderr,
+                "[HNSW RNG] set_disable_reverse_prune requested=%d\n",
+                flag ? 1 : 0);
     }
 
     // methods that initialize the tree sizes
@@ -362,6 +373,14 @@ struct HNSW {
 
     ~HNSW(); // Close file descriptor
     std::vector<int> ems;
+
+    void set_zmq_port(int port) {
+        zmq_port = port;
+    }
+
+    int get_zmq_port() const {
+        return zmq_port;
+    }
 };
 
 struct HNSWStats {

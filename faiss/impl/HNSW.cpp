@@ -7,6 +7,7 @@
 
 #include <faiss/impl/HNSW.h>
 
+#include <cstdio>
 #include <cstddef>
 #include "faiss/IndexHNSW.h"
 
@@ -508,13 +509,13 @@ void shrink_neighbor_list(
 /// add a link between two elements, possibly shrinking the list
 /// of links to make room for it.
 void add_link(
-        HNSW& hnsw,
-        DistanceComputer& qdis,
-        storage_idx_t src,
-        storage_idx_t dest,
-        int level,
-        bool keep_max_size_level0 = false,
-        bool is_reverse_edge = false) {
+    HNSW& hnsw,
+    DistanceComputer& qdis,
+    storage_idx_t src,
+    storage_idx_t dest,
+    int level,
+    bool keep_max_size_level0 = false,
+    bool is_reverse_edge = false) {
     size_t begin, end;
     hnsw.neighbor_range(src, level, &begin, &end);
 
@@ -522,6 +523,17 @@ void add_link(
     if (level == 0) {
         skip_rng = (!is_reverse_edge && hnsw.disable_rng_during_add) ||
                 (is_reverse_edge && hnsw.disable_reverse_prune);
+        std::fprintf(
+                stderr,
+                "[HNSW RNG] add_link src=%ld dest=%ld level=%d reverse=%d \
+skip_rng=%d forward_flag=%d reverse_flag=%d\n",
+                (long)src,
+                (long)dest,
+                level,
+                is_reverse_edge ? 1 : 0,
+                skip_rng ? 1 : 0,
+                hnsw.disable_rng_during_add ? 1 : 0,
+                hnsw.disable_reverse_prune ? 1 : 0);
     }
 
     if (skip_rng) {
@@ -529,6 +541,9 @@ void add_link(
         for (size_t i = begin; i < end; ++i) {
             storage_idx_t current = hnsw.neighbors[i];
             if (current == dest) {
+                std::fprintf(stderr,
+                        "[HNSW RNG] skip_rng existing dest=%ld already present\n",
+                        (long)dest);
                 return;
             }
             if (free_slot == end && current == -1) {
@@ -538,11 +553,19 @@ void add_link(
 
         if (free_slot < end) {
             hnsw.neighbors[free_slot] = dest;
+            std::fprintf(stderr,
+                    "[HNSW RNG] skip_rng inserted dest=%ld into free slot %ld\n",
+                    (long)dest,
+                    (long)free_slot);
             return;
         }
 
         if (begin < end) {
             hnsw.neighbors[begin] = dest;
+            std::fprintf(stderr,
+                    "[HNSW RNG] skip_rng overwritten slot %ld with dest=%ld\n",
+                    (long)begin,
+                    (long)dest);
         }
         return;
     }
@@ -706,6 +729,9 @@ void search_neighbors_to_add(
 
         if (!ids_to_process.empty()) {
             std::vector<float> distances(ids_to_process.size());
+            std::fprintf(stderr,
+                    "[HNSW RNG] search_distances_batch size=%zu\n",
+                    ids_to_process.size());
             qdis.distances_batch(ids_to_process, distances);
 
             for (size_t idx = 0; idx < ids_to_process.size(); idx++) {
@@ -766,20 +792,25 @@ void HNSW::add_links_starting_from(
         // If this is the first node and its distance is below threshold, add it
         // and break
         if (merged_node && apply_merging && !pass_first_node && distance < -1.8) {
-            if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
-                add_link_pruned(
-                        *this,
-                        ptdis,
-                        pt_id,
-                        other_id,
-                        level,
-                        keep_max_size_level0);
-            } else {
-                add_link(
-                        *this,
-                        ptdis,
-                        pt_id,
-                        other_id,
+        if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
+            add_link_pruned(
+                    *this,
+                    ptdis,
+                    pt_id,
+                    other_id,
+                    level,
+                    keep_max_size_level0);
+        } else {
+            std::fprintf(stderr,
+                    "[HNSW RNG] forward edge candidate pt=%ld -> other=%ld level=%d\n",
+                    (long)pt_id,
+                    (long)other_id,
+                    level);
+            add_link(
+                    *this,
+                    ptdis,
+                    pt_id,
+                    other_id,
                         level,
                         keep_max_size_level0,
                         false);
@@ -817,6 +848,11 @@ void HNSW::add_links_starting_from(
             add_link_pruned(
                     *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
         } else {
+            std::fprintf(stderr,
+                    "[HNSW RNG] reverse edge candidate other=%ld -> pt=%ld level=%d\n",
+                    (long)other_id,
+                    (long)pt_id,
+                    level);
             add_link(
                     *this,
                     ptdis,

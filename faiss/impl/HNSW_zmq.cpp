@@ -275,6 +275,9 @@ bool fetch_embeddings_zmq(
         // fprintf(stderr,
         //         "[fetch_zmq] zmq_ctx_new failed: %s\n",
         //         zmq_strerror(zmq_errno()));
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] fetch_embeddings ctx_new failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         return false;
     }
     void* socket = zmq_socket(context, ZMQ_REQ);
@@ -282,6 +285,9 @@ bool fetch_embeddings_zmq(
         // fprintf(stderr,
         //         "[fetch_zmq] zmq_socket failed: %s\n",
         //         zmq_strerror(zmq_errno()));
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] fetch_embeddings socket failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         zmq_ctx_destroy(context);
         return false;
     }
@@ -293,12 +299,19 @@ bool fetch_embeddings_zmq(
         // fprintf(stderr,
         //         "[fetch_zmq] zmq_connect failed: %s\n",
         //         zmq_strerror(zmq_errno()));
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] fetch_embeddings connect(" << endpoint
+                  << ") failed: " << err << " (" << zmq_strerror(err)
+                  << ")" << std::endl;
         zmq_close(socket);
         zmq_ctx_destroy(context);
         return false;
     }
 
-    if (zmq_send(socket, req_str.data(), req_str.size(), 0) < 0) { /*...*/
+    if (zmq_send(socket, req_str.data(), req_str.size(), 0) < 0) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] fetch_embeddings send failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         // fprintf(stderr,
         //         "[fetch_zmq] zmq_msg_recv failed: %s\n",
         //         zmq_strerror(zmq_errno()));
@@ -309,7 +322,10 @@ bool fetch_embeddings_zmq(
 
     zmq_msg_t response;
     zmq_msg_init(&response);
-    if (zmq_msg_recv(&response, socket, 0) < 0) { /*...*/
+    if (zmq_msg_recv(&response, socket, 0) < 0) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] fetch_embeddings recv failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         // fprintf(stderr,
         //         "[fetch_zmq] zmq_msg_recv failed: %s\n",
         //         zmq_strerror(zmq_errno()));
@@ -423,6 +439,9 @@ const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
     if (kEnableZmqEmbeddingCache) {
         auto cached = cached_vectors.find(id);
         if (cached != cached_vectors.end()) {
+            std::fprintf(stderr,
+                    "[HNSW RNG] get_vector_zmq id=%ld cache_hit=1\n",
+                    (long)id);
             return cached->second.data();
         }
     }
@@ -441,6 +460,10 @@ const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
     FAISS_ASSERT(fetched.size() == d);
 
     fetch_count++;
+    std::fprintf(
+            stderr,
+            "[HNSW RNG] get_vector_zmq id=%ld cache_hit=0\n",
+            (long)id);
 
     if (kEnableZmqEmbeddingCache) {
         auto [it, inserted] = cached_vectors.emplace(id, std::move(fetched));
@@ -479,10 +502,16 @@ bool fetch_distances_zmq(
 
     void* context = zmq_ctx_new();
     if (!context) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] zmq_ctx_new failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         return false;
     }
     void* socket = zmq_socket(context, ZMQ_REQ);
     if (!socket) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] zmq_socket failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         zmq_ctx_destroy(context);
         return false;
     }
@@ -491,12 +520,19 @@ bool fetch_distances_zmq(
     zmq_setsockopt(socket, ZMQ_SNDTIMEO, &timeout, sizeof(timeout));
     std::string endpoint = "tcp://127.0.0.1:" + std::to_string(zmq_port);
     if (zmq_connect(socket, endpoint.c_str()) != 0) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] zmq_connect(" << endpoint
+                  << ") failed: " << err << " (" << zmq_strerror(err)
+                  << ")" << std::endl;
         zmq_close(socket);
         zmq_ctx_destroy(context);
         return false;
     }
 
     if (zmq_send(socket, req_str.data(), req_str.size(), 0) < 0) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] zmq_send failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         zmq_close(socket);
         zmq_ctx_destroy(context);
         return false;
@@ -505,6 +541,9 @@ bool fetch_distances_zmq(
     zmq_msg_t response;
     zmq_msg_init(&response);
     if (zmq_msg_recv(&response, socket, 0) < 0) {
+        int err = zmq_errno();
+        std::cerr << "[ZMQ] zmq_msg_recv failed: " << err << " ("
+                  << zmq_strerror(err) << ")" << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);
         zmq_ctx_destroy(context);
@@ -529,8 +568,8 @@ bool fetch_distances_zmq(
     }
 
     if (resp_msgpack.distances.size() != node_ids.size()) {
-        std::cerr << "Distance response size mismatch: Got "
-                  << resp_msgpack.distances.size() << " distances, expected "
+        std::cerr << "[ZMQ] Distance response size mismatch: got "
+                  << resp_msgpack.distances.size() << " expected "
                   << node_ids.size() << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);

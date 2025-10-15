@@ -191,7 +191,8 @@ void hnsw_add_vertices(
                     dis.reset(new ZmqDistanceComputer(
                             index_hnsw.d,
                             index_hnsw.metric_type,
-                            index_hnsw.metric_arg));
+                            index_hnsw.metric_arg,
+                            index_hnsw.hnsw.zmq_port));
                 } else {
                     dis.reset(storage_distance_computer(index_hnsw.storage));
                 }
@@ -343,7 +344,7 @@ void hnsw_search(
     // ---- End Addition ----
 
     int efSearch = hnsw.efSearch;
-    int zmq_port = 5557;
+    int zmq_port = hnsw.zmq_port;
     if (params) {
         if (const SearchParametersHNSW* hnsw_params =
                     dynamic_cast<const SearchParametersHNSW*>(params)) {
@@ -485,6 +486,7 @@ void IndexHNSW::reset() {
 void IndexHNSW::reconstruct(idx_t key, float* recons) const {
     if (is_recompute) {
         ZmqDistanceComputer fetcher(storage);
+        fetcher.zmq_port = hnsw.zmq_port;
         const float* vec = fetcher.get_vector_zmq(key);
         assert(vec);
         memcpy(recons, vec, d * sizeof(float));
@@ -1207,6 +1209,14 @@ void IndexHNSW::save_edge_stats(const char* filename) const {
 
     fclose(f);
     printf("\nSaved statistics for %zu edges to %s\n", edge_count, filename);
+}
+
+void IndexHNSW::set_zmq_port(int port) {
+    hnsw.set_zmq_port(port);
+}
+
+int IndexHNSW::get_zmq_port() const {
+    return hnsw.get_zmq_port();
 }
 
 } // namespace faiss

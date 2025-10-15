@@ -135,6 +135,10 @@ struct IndexHNSW : Index {
     size_t get_last_total_fetch_count() const;
 
     void save_edge_stats(const char* filename) const;
+
+    void set_zmq_port(int port);
+
+    int get_zmq_port() const;
 };
 
 /** Flat index topped with with a HNSW structure to access elements

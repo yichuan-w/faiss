@@ -580,6 +580,26 @@ void gpu_sync_all_devices()
 %include  <faiss/impl/HNSW.h>
 %include  <faiss/IndexHNSW.h>
 
+%extend faiss::IndexHNSW {
+    void set_zmq_port(int port) {
+        self->set_zmq_port(port);
+    }
+
+    int get_zmq_port() const {
+        return self->get_zmq_port();
+    }
+}
+
+%extend faiss::HNSW {
+    void set_zmq_port(int port) {
+        self->set_zmq_port(port);
+    }
+
+    int get_zmq_port() const {
+        return self->get_zmq_port();
+    }
+}
+
 %include <faiss/impl/kmeans1d.h>
 
 %ignore faiss::nndescent::Nhood::lock;

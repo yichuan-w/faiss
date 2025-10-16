@@ -436,7 +436,7 @@ bool fetch_embeddings_zmq(
 }
 
 const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
-    if (kEnableZmqEmbeddingCache) {
+    if (kEnableZmqEmbeddingCache()) {
         auto cached = cached_vectors.find(id);
         if (cached != cached_vectors.end()) {
             std::fprintf(stderr,
@@ -465,7 +465,7 @@ const float* ZmqDistanceComputer::get_vector_zmq(idx_t id) {
             "[HNSW RNG] get_vector_zmq id=%ld cache_hit=0\n",
             (long)id);
 
-    if (kEnableZmqEmbeddingCache) {
+    if (kEnableZmqEmbeddingCache()) {
         auto [it, inserted] = cached_vectors.emplace(id, std::move(fetched));
         return it->second.data();
     } else {

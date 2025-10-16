@@ -24,7 +24,12 @@ float read_disk_and_compute_local_ip(idx_t i, size_t d, const float* query);
 
 inline int fetch_disk_cache_counts = 0;
 
-inline constexpr bool kEnableZmqEmbeddingCache = true;
+inline bool kEnableZmqEmbeddingCache() {
+    const char* env = std::getenv("LEANN_ZMQ_EMBED_CACHE");
+    // Default enabled; disable if env is 0/false/no
+    if (!env) return true;
+    return !(env[0] == '0' || env[0] == 'f' || env[0] == 'F' || env[0] == 'n' || env[0] == 'N');
+}
 
 struct ZmqDistanceComputer : DistanceComputer {
     size_t d;
@@ -80,7 +85,7 @@ struct ZmqDistanceComputer : DistanceComputer {
 
     void reset_fetch_count() override {
         fetch_count = 0;
-        if (kEnableZmqEmbeddingCache) {
+        if (kEnableZmqEmbeddingCache()) {
             cached_vectors.clear();
         }
         last_fetched_vector.clear();
@@ -129,7 +134,7 @@ struct ZmqDistanceComputer : DistanceComputer {
     void set_query(const float* x) override {
         reset_fetch_count();
         memcpy(query.data(), x, d * sizeof(float));
-        if (kEnableZmqEmbeddingCache) {
+        if (kEnableZmqEmbeddingCache()) {
             cached_vectors.clear();
         }
         last_fetched_vector.clear();

@@ -561,11 +561,18 @@ skip_rng=%d forward_flag=%d reverse_flag=%d\n",
         }
 
         if (begin < end) {
-            hnsw.neighbors[begin] = dest;
+            // Previously we overwrote the first slot (begin). That skews the
+            // retained neighbor set. Instead, pick a random slot to replace
+            // uniformly among existing neighbors in [begin, end).
+            int span = (int)(end - begin);
+            int offset = hnsw.rng.rand_int(std::max(1, span));
+            size_t victim = begin + (size_t)offset;
+            hnsw.neighbors[victim] = dest;
             std::fprintf(stderr,
-                    "[HNSW RNG] skip_rng overwritten slot %ld with dest=%ld\n",
-                    (long)begin,
-                    (long)dest);
+                    "[HNSW RNG] skip_rng randomly replaced slot %ld with dest=%ld (span=%d)\n",
+                    (long)victim,
+                    (long)dest,
+                    span);
         }
         return;
     }
@@ -670,6 +677,36 @@ void add_link_pruned(
 
 } // namespace
 
+static void random_shrink_neighbor_list(
+        std::priority_queue<HNSW::NodeDistCloser>& pq,
+        int max_keep,
+        faiss::RandomGenerator& rng) {
+    if (max_keep <= 0 || pq.empty()) {
+        while (!pq.empty()) {
+            pq.pop();
+        }
+        return;
+    }
+
+    std::vector<HNSW::NodeDistCloser> candidates;
+    candidates.reserve(pq.size());
+    while (!pq.empty()) {
+        candidates.push_back(pq.top());
+        pq.pop();
+    }
+
+    std::shuffle(candidates.begin(), candidates.end(), rng.mt);
+    size_t keep = std::min<size_t>(max_keep, candidates.size());
+    std::fprintf(
+            stderr,
+            "[HNSW RNG] random_shrink candidates=%zu keep=%zu\n",
+            candidates.size(),
+            keep);
+    for (size_t i = 0; i < keep; ++i) {
+        pq.emplace(candidates[i]);
+    }
+}
+
 /// search neighbors on a single level, starting from an entry point
 void search_neighbors_to_add(
         HNSW& hnsw,
@@ -771,8 +808,12 @@ void HNSW::add_links_starting_from(
     // but we can afford only this many neighbors
     int M = nb_neighbors(level);
 
-    ::faiss::shrink_neighbor_list(
-            ptdis, link_targets, ems[pt_id], keep_max_size_level0);
+    if (level == 0 && disable_rng_during_add) {
+        random_shrink_neighbor_list(link_targets, ems[pt_id], rng);
+    } else {
+        ::faiss::shrink_neighbor_list(
+                ptdis, link_targets, ems[pt_id], keep_max_size_level0);
+    }
 
     std::vector<storage_idx_t> neighbors_to_add;
     neighbors_to_add.reserve(link_targets.size());
@@ -1101,6 +1142,36 @@ namespace {
 using MinimaxHeap = HNSW::MinimaxHeap;
 using Node = HNSW::Node;
 using C = HNSW::C;
+
+void random_shrink_neighbor_list(
+        std::priority_queue<HNSW::NodeDistCloser>& pq,
+        int max_keep,
+        faiss::RandomGenerator& rng) {
+    if (max_keep <= 0 || pq.empty()) {
+        while (!pq.empty()) {
+            pq.pop();
+        }
+        return;
+    }
+
+    std::vector<HNSW::NodeDistCloser> candidates;
+    candidates.reserve(pq.size());
+    while (!pq.empty()) {
+        candidates.push_back(pq.top());
+        pq.pop();
+    }
+
+    std::shuffle(candidates.begin(), candidates.end(), rng.mt);
+    size_t keep = std::min<size_t>(max_keep, candidates.size());
+    std::fprintf(
+            stderr,
+            "[HNSW RNG] random_shrink candidates=%zu keep=%zu\n",
+            candidates.size(),
+            keep);
+    for (size_t i = 0; i < keep; ++i) {
+        pq.emplace(candidates[i]);
+    }
+}
 
 // just used as a lower bound for the minmaxheap, but it is set for heap search
 int extract_k_from_ResultHandler(ResultHandler<C>& res) {

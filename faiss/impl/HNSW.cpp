@@ -805,7 +805,8 @@ void HNSW::add_links_starting_from(
     search_neighbors_to_add(
             *this, ptdis, link_targets, nearest, d_nearest, level, vt);
 
-    // but we can afford only this many neighbors
+    std::fprintf(stderr, "after search_neighbors_to_add link_targets.size(): %zu\n", link_targets.size());
+            // but we can afford only this many neighbors
     int M = nb_neighbors(level);
 
     if (level == 0 && disable_rng_during_add) {
@@ -814,6 +815,8 @@ void HNSW::add_links_starting_from(
         ::faiss::shrink_neighbor_list(
                 ptdis, link_targets, ems[pt_id], keep_max_size_level0);
     }
+
+    std::fprintf(stderr, "after shrink_neighbor_list link_targets.size(): %zu\n", link_targets.size());
 
     std::vector<storage_idx_t> neighbors_to_add;
     neighbors_to_add.reserve(link_targets.size());
@@ -882,6 +885,8 @@ void HNSW::add_links_starting_from(
         link_targets.pop();
     }
 
+    std::fprintf(stderr, "after add edges of incmoing node to outgoing node add_links_starting_from neighbors_to_add.size(): %zu\n", neighbors_to_add.size());
+
     omp_unset_lock(&locks[pt_id]);
     for (storage_idx_t other_id : neighbors_to_add) {
         omp_set_lock(&locks[other_id]);
@@ -905,6 +910,8 @@ void HNSW::add_links_starting_from(
         }
         omp_unset_lock(&locks[other_id]);
     }
+    std::fprintf(stderr, "after add edges of outgoing node to incoming node add_links_starting_from neighbors_to_add.size(): %zu\n", neighbors_to_add.size());
+
     omp_set_lock(&locks[pt_id]);
 }
 

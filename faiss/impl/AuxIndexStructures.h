@@ -17,8 +17,11 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <atomic>
+#include <cstdio>
 
 #include <faiss/MetricType.h>
+#include <faiss/impl/FaissAssert.h>
 #include <faiss/impl/platform_macros.h>
 
 namespace faiss {
@@ -178,11 +181,29 @@ struct VisitedTable {
 
     /// set flag #no to true
     void set(int no) {
+        if (no < 0) {
+            FAISS_THROW_FMT("VisitedTable::set negative index %d", no);
+        }
+        if ((size_t)no >= visited.size()) {
+            static std::atomic<int> resize_warn_count{0};
+            size_t old = visited.size();
+            visited.resize((size_t)no + 1, 0);
+            if (resize_warn_count.fetch_add(1, std::memory_order_relaxed) < 5) {
+                std::fprintf(
+                        stderr,
+                        "[HNSW RNG] warn: expanding VisitedTable from %zu to %zu\n",
+                        old,
+                        visited.size());
+            }
+        }
         visited[no] = visno;
     }
 
     /// get flag #no
     bool get(int no) const {
+        if (no < 0 || (size_t)no >= visited.size()) {
+            return false;
+        }
         return visited[no] == visno;
     }
 

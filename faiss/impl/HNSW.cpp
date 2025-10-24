@@ -829,32 +829,78 @@ void HNSW::add_links_starting_from(
     bool pass_first_node = false;
     bool merged_node = false;
 
+    auto link_exists = [&](storage_idx_t src, storage_idx_t dst, int lvl) {
+        size_t b, e;
+        neighbor_range(src, lvl, &b, &e);
+        for (size_t ii = b; ii < e; ++ii) {
+            storage_idx_t cur = neighbors[ii];
+            if (cur == dst) {
+                return true;
+            }
+            if (cur == -1) {
+                break;
+            }
+        }
+        return false;
+    };
+
+    std::unordered_set<storage_idx_t> seen_forward;
+
     while (!link_targets.empty()) {
         storage_idx_t other_id = link_targets.top().id;
         float distance = link_targets.top().d;
 
-        // If this is the first node and its distance is below threshold, add it
-        // and break
-        if (merged_node && apply_merging && !pass_first_node && distance < -1.8) {
-        if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
-            add_link_pruned(
-                    *this,
-                    ptdis,
-                    pt_id,
-                    other_id,
-                    level,
-                    keep_max_size_level0);
-        } else {
+        static std::atomic<int> self_edge_warn_count{0};
+        if (other_id == pt_id &&
+            self_edge_warn_count.fetch_add(1, std::memory_order_relaxed) < 10) {
             std::fprintf(stderr,
-                    "[HNSW RNG] forward edge candidate pt=%ld -> other=%ld level=%d\n",
+                    "[HNSW RNG] warn: self-edge candidate pt=%ld level=%d\n",
+                    (long)pt_id,
+                    level);
+        }
+
+        bool inserted = seen_forward.insert(other_id).second;
+        static std::atomic<int> dup_forward_warn{0};
+        if (!inserted &&
+            dup_forward_warn.fetch_add(1, std::memory_order_relaxed) < 10) {
+            std::fprintf(stderr,
+                    "[HNSW RNG] warn: duplicate forward candidate pt=%ld -> other=%ld level=%d\n",
                     (long)pt_id,
                     (long)other_id,
                     level);
-            add_link(
-                    *this,
-                    ptdis,
-                    pt_id,
-                    other_id,
+        }
+
+        bool already_linked = link_exists(pt_id, other_id, level);
+        static std::atomic<int> forward_exists_warn{0};
+        if (already_linked &&
+            forward_exists_warn.fetch_add(1, std::memory_order_relaxed) < 10) {
+            std::fprintf(stderr,
+                    "[HNSW RNG] warn: forward edge already present pt=%ld -> other=%ld level=%d\n",
+                    (long)pt_id,
+                    (long)other_id,
+                    level);
+        }
+
+        if (merged_node && apply_merging && !pass_first_node && distance < -1.8) {
+            if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
+                add_link_pruned(
+                        *this,
+                        ptdis,
+                        pt_id,
+                        other_id,
+                        level,
+                        keep_max_size_level0);
+            } else {
+                std::fprintf(stderr,
+                        "[HNSW RNG] forward edge candidate pt=%ld -> other=%ld level=%d\n",
+                        (long)pt_id,
+                        (long)other_id,
+                        level);
+                add_link(
+                        *this,
+                        ptdis,
+                        pt_id,
+                        other_id,
                         level,
                         keep_max_size_level0,
                         false);
@@ -863,11 +909,9 @@ void HNSW::add_links_starting_from(
             pass_first_node = true;
             link_targets.pop();
             printf("add_link_pruned src, dst, distance: %d, %d, %f\n", pt_id, other_id, distance);
-            break; // Only add this one node and stop
+            break;
         }
 
-        // Normal processing for nodes above threshold or when merging is not
-        // applied
         if (level == 0 && M > ems[pt_id] && prune_in_add_link) {
             add_link_pruned(
                     *this, ptdis, pt_id, other_id, level, keep_max_size_level0);
@@ -890,15 +934,33 @@ void HNSW::add_links_starting_from(
     omp_unset_lock(&locks[pt_id]);
     for (storage_idx_t other_id : neighbors_to_add) {
         omp_set_lock(&locks[other_id]);
+        bool reverse_exists = link_exists(other_id, pt_id, level);
+        static std::atomic<int> reverse_exists_warn{0};
+        if (reverse_exists &&
+            reverse_exists_warn.fetch_add(1, std::memory_order_relaxed) < 10) {
+            std::fprintf(stderr,
+                    "[HNSW RNG] warn: reverse edge already present other=%ld -> pt=%ld level=%d\n",
+                    (long)other_id,
+                    (long)pt_id,
+                    level);
+        }
         if (level == 0 && M > ems[other_id] && prune_in_add_link) {
             add_link_pruned(
                     *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
         } else {
-            std::fprintf(stderr,
-                    "[HNSW RNG] reverse edge candidate other=%ld -> pt=%ld level=%d\n",
-                    (long)other_id,
-                    (long)pt_id,
-                    level);
+            if (!reverse_exists) {
+                std::fprintf(stderr,
+                        "[HNSW RNG] reverse edge candidate other=%ld -> pt=%ld level=%d\n",
+                        (long)other_id,
+                        (long)pt_id,
+                        level);
+            } else {
+                std::fprintf(stderr,
+                        "[HNSW RNG] reverse already-linked other=%ld -> pt=%ld level=%d\n",
+                        (long)other_id,
+                        (long)pt_id,
+                        level);
+            }
             add_link(
                     *this,
                     ptdis,

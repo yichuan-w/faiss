@@ -470,11 +470,21 @@ void IndexHNSW::add(idx_t n, const float* x) {
             storage,
             "Please use IndexHNSWFlat (or variants) instead of IndexHNSW directly");
     FAISS_THROW_IF_NOT(is_trained);
-    int n0 = ntotal;
+    size_t existing_count = hnsw.levels.size();
     storage->add(n, x);
-    ntotal = storage->ntotal;
+    if (is_recompute) {
+        ntotal = existing_count + n;
+    } else {
+        ntotal = storage->ntotal;
+    }
 
-    hnsw_add_vertices(*this, n0, n, x, verbose, hnsw.levels.size() == ntotal);
+    hnsw_add_vertices(
+            *this,
+            existing_count,
+            n,
+            x,
+            verbose,
+            hnsw.levels.size() == ntotal);
 }
 
 void IndexHNSW::reset() {

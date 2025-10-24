@@ -34,6 +34,7 @@
 #include <zmq.h>
 #include <algorithm>
 #include <atomic>
+#include <mutex>
 #include <chrono>
 #include <fstream>
 #include <future>
@@ -49,6 +50,24 @@ std::string experimental_disk_storage_path;
 off_t experimental_disk_data_offset;
 int experimental_block_size;
 std::vector<bool> experimental_is_in_top_degree_set;
+
+void* acquire_shared_zmq_context() {
+    static void* ctx = nullptr;
+    static std::once_flag init_flag;
+    static int init_status = 0;
+
+    std::call_once(init_flag, []() {
+        ctx = zmq_ctx_new();
+        if (!ctx) {
+            init_status = -1;
+        }
+    });
+
+    if (init_status != 0 || ctx == nullptr) {
+        return nullptr;
+    }
+    return ctx;
+}
 } // namespace
 
 void setup_experimental_top_degree_disk_read(
@@ -270,14 +289,10 @@ bool fetch_embeddings_zmq(
     }
     std::string req_str = buffer.str();
 
-    void* context = zmq_ctx_new();
+    void* context = acquire_shared_zmq_context();
     if (!context) {
-        // fprintf(stderr,
-        //         "[fetch_zmq] zmq_ctx_new failed: %s\n",
-        //         zmq_strerror(zmq_errno()));
-        int err = zmq_errno();
-        std::cerr << "[ZMQ] fetch_embeddings ctx_new failed: " << err << " ("
-                  << zmq_strerror(err) << ")" << std::endl;
+        std::cerr << "[ZMQ] fetch_embeddings ctx_new failed: " << zmq_errno() << " ("
+                  << zmq_strerror(zmq_errno()) << ")" << std::endl;
         return false;
     }
     void* socket = zmq_socket(context, ZMQ_REQ);
@@ -288,7 +303,6 @@ bool fetch_embeddings_zmq(
         int err = zmq_errno();
         std::cerr << "[ZMQ] fetch_embeddings socket failed: " << err << " ("
                   << zmq_strerror(err) << ")" << std::endl;
-        zmq_ctx_destroy(context);
         return false;
     }
     int timeout = 30000;
@@ -304,7 +318,6 @@ bool fetch_embeddings_zmq(
                   << ") failed: " << err << " (" << zmq_strerror(err)
                   << ")" << std::endl;
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -316,7 +329,6 @@ bool fetch_embeddings_zmq(
         //         "[fetch_zmq] zmq_msg_recv failed: %s\n",
         //         zmq_strerror(zmq_errno()));
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -331,7 +343,6 @@ bool fetch_embeddings_zmq(
         //         zmq_strerror(zmq_errno()));
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -373,7 +384,6 @@ bool fetch_embeddings_zmq(
         //           << resp_msgpack.dimensions.size() << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
     int batch_size = resp_msgpack.dimensions[0];
@@ -384,7 +394,6 @@ bool fetch_embeddings_zmq(
         out_embeddings.clear();
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return true; // Successful communication, no data returned
     }
 
@@ -397,7 +406,6 @@ bool fetch_embeddings_zmq(
         //           << embedding_dim << ")" << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -430,7 +438,6 @@ bool fetch_embeddings_zmq(
 
     zmq_msg_close(&response);
     zmq_close(socket);
-    zmq_ctx_destroy(context);
 
     return true;
 }
@@ -500,7 +507,7 @@ bool fetch_distances_zmq(
     }
     std::string req_str = buffer.str();
 
-    void* context = zmq_ctx_new();
+    void* context = acquire_shared_zmq_context();
     if (!context) {
         int err = zmq_errno();
         std::cerr << "[ZMQ] zmq_ctx_new failed: " << err << " ("
@@ -512,7 +519,6 @@ bool fetch_distances_zmq(
         int err = zmq_errno();
         std::cerr << "[ZMQ] zmq_socket failed: " << err << " ("
                   << zmq_strerror(err) << ")" << std::endl;
-        zmq_ctx_destroy(context);
         return false;
     }
     int timeout = 30000;
@@ -525,7 +531,6 @@ bool fetch_distances_zmq(
                   << ") failed: " << err << " (" << zmq_strerror(err)
                   << ")" << std::endl;
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -534,7 +539,6 @@ bool fetch_distances_zmq(
         std::cerr << "[ZMQ] zmq_send failed: " << err << " ("
                   << zmq_strerror(err) << ")" << std::endl;
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -546,7 +550,6 @@ bool fetch_distances_zmq(
                   << zmq_strerror(err) << ")" << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -563,7 +566,6 @@ bool fetch_distances_zmq(
                   << e.what() << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -573,7 +575,6 @@ bool fetch_distances_zmq(
                   << node_ids.size() << std::endl;
         zmq_msg_close(&response);
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -582,7 +583,6 @@ bool fetch_distances_zmq(
 
     zmq_msg_close(&response);
     zmq_close(socket);
-    zmq_ctx_destroy(context);
 
     return true;
 }
@@ -599,23 +599,33 @@ void ZmqDistanceComputer::distances_batch(
     std::vector<uint32_t> disk_nodes;
     std::vector<size_t> disk_orig_indices;
 
+    static std::atomic<int> disk_oob_warning_count{0};
+
     for (size_t j = 0; j < ids.size(); ++j) {
         idx_t id = ids[j];
-        if (experimental_is_in_top_degree_set.empty()) {
+
+        bool use_disk_path = false;
+        if (!experimental_is_in_top_degree_set.empty() && id >= 0) {
+            size_t uid = static_cast<size_t>(id);
+            if (uid < experimental_is_in_top_degree_set.size()) {
+                use_disk_path = experimental_is_in_top_degree_set[uid];
+            } else {
+                if (disk_oob_warning_count.fetch_add(1, std::memory_order_relaxed) < 5) {
+                    std::fprintf(
+                            stderr,
+                            "[HNSW RNG] top-degree disk set missing id=%ld (size=%zu); using remote fetch\n",
+                            (long)id,
+                            experimental_is_in_top_degree_set.size());
+                }
+            }
+        }
+
+        if (use_disk_path) {
+            disk_nodes.push_back(id);
+            disk_orig_indices.push_back(j);
+        } else {
             remote_nodes.push_back(id);
             remote_orig_indices.push_back(j);
-        } else {
-            assert(id >= 0 &&
-                   (size_t)id < experimental_is_in_top_degree_set.size());
-            if (experimental_is_in_top_degree_set[id]) {
-                // Mark for disk read
-                disk_nodes.push_back(id);
-                disk_orig_indices.push_back(j);
-            } else {
-                // Mark for remote read
-                remote_nodes.push_back(id);
-                remote_orig_indices.push_back(j);
-            }
         }
     }
 
@@ -625,13 +635,31 @@ void ZmqDistanceComputer::distances_batch(
         std::vector<float> fetched_distances;
         bool success = fetch_distances_zmq(
                 remote_nodes, query.data(), d, fetched_distances, zmq_port);
-        assert(success);
-        assert(fetched_distances.size() == remote_nodes.size());
+
+        bool batch_valid = success &&
+                fetched_distances.size() == remote_nodes.size();
+        if (!batch_valid) {
+            static std::atomic<int> distance_batch_warn_count{0};
+            if (distance_batch_warn_count.fetch_add(1, std::memory_order_relaxed) <
+                5) {
+                std::fprintf(
+                        stderr,
+                        "[HNSW RNG] distance batch fetch failed (success=%d, got=%zu, expected=%zu)\n",
+                        success ? 1 : 0,
+                        fetched_distances.size(),
+                        remote_nodes.size());
+            }
+            FAISS_THROW_FMT(
+                    "distance batch fetch failed (success=%d, got=%zu, expected=%zu)",
+                    success ? 1 : 0,
+                    fetched_distances.size(),
+                    remote_nodes.size());
+        }
+        fetch_count += remote_nodes.size(); // Count these as fetches
 
         for (size_t j = 0; j < remote_nodes.size(); ++j) {
             distances_out[remote_orig_indices[j]] = fetched_distances[j];
         }
-        fetch_count += remote_nodes.size(); // Count these as fetches
     }
 
     // timing

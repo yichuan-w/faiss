@@ -247,12 +247,21 @@ endif()
 
 find_package(OpenMP REQUIRED)
 
+# ZMQ is now linked transitively through faiss (PUBLIC linkage)
 target_link_libraries(swigfaiss PRIVATE
-  faiss
+  faiss                  # This will automatically link ZMQ::zmq transitively
   Python::Module
   Python::NumPy
   OpenMP::OpenMP_CXX
 )
+
+# macOS: Python::Module adds -undefined dynamic_lookup which prevents actual linking
+# Override to use proper symbol resolution and force ZMQ linkage
+if(APPLE)
+  set_target_properties(swigfaiss PROPERTIES
+    LINK_FLAGS "-Wl,-undefined,error"
+  )
+endif()
 
 if(FAISS_BUILD_AVX_VERSIONS)
   target_link_libraries(swigfaiss_avx2 PRIVATE

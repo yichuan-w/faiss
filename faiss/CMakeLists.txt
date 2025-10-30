@@ -488,27 +488,35 @@ if(FAISS_USE_LTO)
 endif()
 
 find_package(OpenMP REQUIRED)
-target_link_libraries(faiss PRIVATE OpenMP::OpenMP_CXX
-${ZeroMQ_LIBRARIES}       # Add ZMQ
-${MSGPACK_LIBRARIES}      # Add msgpack-c
+
+# Link faiss static library with PUBLIC linkage to ZMQ
+# PUBLIC because faiss source code uses ZMQ headers AND consumers must link ZMQ
+target_link_libraries(faiss
+  PUBLIC PkgConfig::ZMQ           # PUBLIC: faiss uses ZMQ and propagates to consumers
+  PRIVATE OpenMP::OpenMP_CXX
+  PRIVATE ${MSGPACK_LIBRARIES}
 )
 if(FAISS_BUILD_AVX_VERSIONS)
-  target_link_libraries(faiss_avx2 PRIVATE OpenMP::OpenMP_CXX
-  ${ZeroMQ_LIBRARIES}       # Add ZMQ
-  ${MSGPACK_LIBRARIES}      # Add msgpack-c
+  target_link_libraries(faiss_avx2
+    PUBLIC PkgConfig::ZMQ
+    PRIVATE OpenMP::OpenMP_CXX
+    PRIVATE ${MSGPACK_LIBRARIES}
   )
-  target_link_libraries(faiss_avx512 PRIVATE OpenMP::OpenMP_CXX
-  ${ZeroMQ_LIBRARIES}       # Add ZMQ
-  ${MSGPACK_LIBRARIES}      # Add msgpack-c
+  target_link_libraries(faiss_avx512
+    PUBLIC PkgConfig::ZMQ
+    PRIVATE OpenMP::OpenMP_CXX
+    PRIVATE ${MSGPACK_LIBRARIES}
   )
-  target_link_libraries(faiss_avx512_spr PRIVATE OpenMP::OpenMP_CXX
-  ${ZeroMQ_LIBRARIES}       # Add ZMQ
-  ${MSGPACK_LIBRARIES}      # Add msgpack-c
+  target_link_libraries(faiss_avx512_spr
+    PUBLIC PkgConfig::ZMQ
+    PRIVATE OpenMP::OpenMP_CXX
+    PRIVATE ${MSGPACK_LIBRARIES}
   )
 endif()
-target_link_libraries(faiss_sve PRIVATE OpenMP::OpenMP_CXX
-${ZeroMQ_LIBRARIES}       # Add ZMQ
-${MSGPACK_LIBRARIES}      # Add msgpack-c
+target_link_libraries(faiss_sve
+  PUBLIC PkgConfig::ZMQ
+  PRIVATE OpenMP::OpenMP_CXX
+  PRIVATE ${MSGPACK_LIBRARIES}
 )
 
 if(FAISS_ENABLE_MKL)

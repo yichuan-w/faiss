@@ -36,6 +36,15 @@
 #include <type_traits>
 #endif
 
+#ifndef FAISS_HNSW_DEBUG_STDERR
+#define FAISS_HNSW_DEBUG_STDERR 0
+#endif
+#if FAISS_HNSW_DEBUG_STDERR
+#define HNSW_DEBUGF(...) std::fprintf(__VA_ARGS__)
+#else
+#define HNSW_DEBUGF(...) ((void)0)
+#endif
+
 namespace faiss {
 
 /**************************************************************
@@ -523,7 +532,7 @@ void add_link(
     if (level == 0) {
         skip_rng = (!is_reverse_edge && hnsw.disable_rng_during_add) ||
                 (is_reverse_edge && hnsw.disable_reverse_prune);
-        std::fprintf(
+        HNSW_DEBUGF(
                 stderr,
                 "[HNSW RNG] add_link src=%ld dest=%ld level=%d reverse=%d \
 skip_rng=%d forward_flag=%d reverse_flag=%d\n",
@@ -541,7 +550,7 @@ skip_rng=%d forward_flag=%d reverse_flag=%d\n",
         for (size_t i = begin; i < end; ++i) {
             storage_idx_t current = hnsw.neighbors[i];
             if (current == dest) {
-                std::fprintf(stderr,
+                HNSW_DEBUGF(stderr,
                         "[HNSW RNG] skip_rng existing dest=%ld already present\n",
                         (long)dest);
                 return;
@@ -553,7 +562,7 @@ skip_rng=%d forward_flag=%d reverse_flag=%d\n",
 
         if (free_slot < end) {
             hnsw.neighbors[free_slot] = dest;
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] skip_rng inserted dest=%ld into free slot %ld\n",
                     (long)dest,
                     (long)free_slot);
@@ -568,7 +577,7 @@ skip_rng=%d forward_flag=%d reverse_flag=%d\n",
             int offset = hnsw.rng.rand_int(std::max(1, span));
             size_t victim = begin + (size_t)offset;
             hnsw.neighbors[victim] = dest;
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] skip_rng randomly replaced slot %ld with dest=%ld (span=%d)\n",
                     (long)victim,
                     (long)dest,
@@ -697,7 +706,7 @@ static void random_shrink_neighbor_list(
 
     std::shuffle(candidates.begin(), candidates.end(), rng.mt);
     size_t keep = std::min<size_t>(max_keep, candidates.size());
-    std::fprintf(
+    HNSW_DEBUGF(
             stderr,
             "[HNSW RNG] random_shrink candidates=%zu keep=%zu\n",
             candidates.size(),
@@ -766,7 +775,7 @@ void search_neighbors_to_add(
 
         if (!ids_to_process.empty()) {
             std::vector<float> distances(ids_to_process.size());
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] search_distances_batch size=%zu\n",
                     ids_to_process.size());
             qdis.distances_batch(ids_to_process, distances);
@@ -805,7 +814,7 @@ void HNSW::add_links_starting_from(
     search_neighbors_to_add(
             *this, ptdis, link_targets, nearest, d_nearest, level, vt);
 
-    std::fprintf(stderr, "after search_neighbors_to_add link_targets.size(): %zu\n", link_targets.size());
+    HNSW_DEBUGF(stderr, "after search_neighbors_to_add link_targets.size(): %zu\n", link_targets.size());
             // but we can afford only this many neighbors
     int M = nb_neighbors(level);
 
@@ -816,7 +825,7 @@ void HNSW::add_links_starting_from(
                 ptdis, link_targets, ems[pt_id], keep_max_size_level0);
     }
 
-    std::fprintf(stderr, "after shrink_neighbor_list link_targets.size(): %zu\n", link_targets.size());
+    HNSW_DEBUGF(stderr, "after shrink_neighbor_list link_targets.size(): %zu\n", link_targets.size());
 
     std::vector<storage_idx_t> neighbors_to_add;
     neighbors_to_add.reserve(link_targets.size());
@@ -853,7 +862,7 @@ void HNSW::add_links_starting_from(
         static std::atomic<int> self_edge_warn_count{0};
         if (other_id == pt_id &&
             self_edge_warn_count.fetch_add(1, std::memory_order_relaxed) < 10) {
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] warn: self-edge candidate pt=%ld level=%d\n",
                     (long)pt_id,
                     level);
@@ -863,7 +872,7 @@ void HNSW::add_links_starting_from(
         static std::atomic<int> dup_forward_warn{0};
         if (!inserted &&
             dup_forward_warn.fetch_add(1, std::memory_order_relaxed) < 10) {
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] warn: duplicate forward candidate pt=%ld -> other=%ld level=%d\n",
                     (long)pt_id,
                     (long)other_id,
@@ -874,7 +883,7 @@ void HNSW::add_links_starting_from(
         static std::atomic<int> forward_exists_warn{0};
         if (already_linked &&
             forward_exists_warn.fetch_add(1, std::memory_order_relaxed) < 10) {
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] warn: forward edge already present pt=%ld -> other=%ld level=%d\n",
                     (long)pt_id,
                     (long)other_id,
@@ -891,7 +900,7 @@ void HNSW::add_links_starting_from(
                         level,
                         keep_max_size_level0);
             } else {
-                std::fprintf(stderr,
+                HNSW_DEBUGF(stderr,
                         "[HNSW RNG] forward edge candidate pt=%ld -> other=%ld level=%d\n",
                         (long)pt_id,
                         (long)other_id,
@@ -929,7 +938,7 @@ void HNSW::add_links_starting_from(
         link_targets.pop();
     }
 
-    std::fprintf(stderr, "after add edges of incmoing node to outgoing node add_links_starting_from neighbors_to_add.size(): %zu\n", neighbors_to_add.size());
+    HNSW_DEBUGF(stderr, "after add edges of incmoing node to outgoing node add_links_starting_from neighbors_to_add.size(): %zu\n", neighbors_to_add.size());
 
     omp_unset_lock(&locks[pt_id]);
     for (storage_idx_t other_id : neighbors_to_add) {
@@ -938,7 +947,7 @@ void HNSW::add_links_starting_from(
         static std::atomic<int> reverse_exists_warn{0};
         if (reverse_exists &&
             reverse_exists_warn.fetch_add(1, std::memory_order_relaxed) < 10) {
-            std::fprintf(stderr,
+            HNSW_DEBUGF(stderr,
                     "[HNSW RNG] warn: reverse edge already present other=%ld -> pt=%ld level=%d\n",
                     (long)other_id,
                     (long)pt_id,
@@ -949,13 +958,13 @@ void HNSW::add_links_starting_from(
                     *this, ptdis, other_id, pt_id, level, keep_max_size_level0);
         } else {
             if (!reverse_exists) {
-                std::fprintf(stderr,
+                HNSW_DEBUGF(stderr,
                         "[HNSW RNG] reverse edge candidate other=%ld -> pt=%ld level=%d\n",
                         (long)other_id,
                         (long)pt_id,
                         level);
             } else {
-                std::fprintf(stderr,
+                HNSW_DEBUGF(stderr,
                         "[HNSW RNG] reverse already-linked other=%ld -> pt=%ld level=%d\n",
                         (long)other_id,
                         (long)pt_id,
@@ -972,7 +981,7 @@ void HNSW::add_links_starting_from(
         }
         omp_unset_lock(&locks[other_id]);
     }
-    std::fprintf(stderr, "after add edges of outgoing node to incoming node add_links_starting_from neighbors_to_add.size(): %zu\n", neighbors_to_add.size());
+    HNSW_DEBUGF(stderr, "after add edges of outgoing node to incoming node add_links_starting_from neighbors_to_add.size(): %zu\n", neighbors_to_add.size());
 
     omp_set_lock(&locks[pt_id]);
 }
@@ -1232,7 +1241,7 @@ void random_shrink_neighbor_list(
 
     std::shuffle(candidates.begin(), candidates.end(), rng.mt);
     size_t keep = std::min<size_t>(max_keep, candidates.size());
-    std::fprintf(
+    HNSW_DEBUGF(
             stderr,
             "[HNSW RNG] random_shrink candidates=%zu keep=%zu\n",
             candidates.size(),

@@ -3,6 +3,7 @@
 #include <sys/types.h> // For off_t
 #include <cassert>
 #include <cstddef>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -90,19 +91,29 @@ struct ZmqDistanceComputer : DistanceComputer {
         }
         last_fetched_vector.clear();
     }
-
     float operator()(idx_t i) override {
-        // TODO: should apply disk_cache
-        const float* vec_zmq = get_vector_zmq(i);
-        if (!vec_zmq)
-            return (metric_type == METRIC_INNER_PRODUCT)
-                    ? -std::numeric_limits<float>::max()
-                    : std::numeric_limits<float>::max();
-        if (is_similarity_metric(metric_type)) {
-            return -fvec_inner_product(query.data(), vec_zmq, d);
-        } else {
-            return fvec_L2sqr(query.data(), vec_zmq, d);
+        // For consistency with the main search path, compute single-point
+        // distances via the same batched distance RPC that powers
+        // distances_batch(), instead of going through embedding fetches.
+        std::vector<idx_t> ids = {i};
+        std::vector<float> distances;
+        distances_batch(ids, distances);
+
+        if (distances.size() != 1) {
+            // Bright red error to make ZMQ issues very visible in logs.
+            std::fprintf(
+                    stderr,
+                    "\x1b[31m[ZMQ] ZmqDistanceComputer::operator() "
+                    "distance result size=%zu (expected 1) for id=%ld\x1b[0m\n",
+                    distances.size(),
+                    (long)i);
+            FAISS_THROW_FMT(
+                    "ZmqDistanceComputer::operator(): distance result "
+                    "size=%zu (expected 1) for id=%ld",
+                    distances.size(),
+                    (long)i);
         }
+        return distances[0];
     }
 
     float symmetric_dis(idx_t i, idx_t j) override {

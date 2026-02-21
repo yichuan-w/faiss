@@ -22,7 +22,14 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h> // For file size check
+#ifdef _WIN32
+#include <io.h>
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+#else
 #include <unistd.h>
+#endif
 #include <algorithm>
 #include <cerrno>
 #include <cmath>

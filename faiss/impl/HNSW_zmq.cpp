@@ -30,7 +30,29 @@
 #include <fcntl.h>
 #include <msgpack.hpp>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <io.h>
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+#ifndef O_DIRECT
+#define O_DIRECT 0
+#endif
+static inline ssize_t win_pread(int fd, void* buf, size_t count, off_t offset) {
+    const __int64 cur = _lseeki64(fd, 0, SEEK_CUR);
+    if (cur < 0 || _lseeki64(fd, offset, SEEK_SET) < 0) {
+        return -1;
+    }
+    const int n = _read(fd, reinterpret_cast<char*>(buf), static_cast<unsigned int>(count));
+    const int saved_errno = errno;
+    (void)_lseeki64(fd, cur, SEEK_SET);
+    errno = saved_errno;
+    return n < 0 ? -1 : static_cast<ssize_t>(n);
+}
+#define pread win_pread
+#else
 #include <unistd.h>
+#endif
 #include <zmq.h>
 #include <algorithm>
 #include <atomic>

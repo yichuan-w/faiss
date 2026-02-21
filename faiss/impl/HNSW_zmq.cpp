@@ -31,7 +31,9 @@
 #include <msgpack.hpp>
 #include <sys/stat.h>
 #ifdef _WIN32
+#include <BaseTsd.h>
 #include <io.h>
+typedef SSIZE_T ssize_t;
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
@@ -115,7 +117,11 @@ void setup_experimental_top_degree_disk_read(
     struct stat file_stat;
     int block_size = 4096;
     if (stat(storage_path.c_str(), &file_stat) == 0) {
+#ifdef _WIN32
+        block_size = 4096;
+#else
         block_size = (file_stat.st_blksize > 0) ? file_stat.st_blksize : 4096;
+#endif
     } else {
         // Fail fast on stat error as block size is critical for O_DIRECT
         FAISS_THROW_FMT(

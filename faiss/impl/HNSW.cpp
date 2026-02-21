@@ -23,7 +23,9 @@
 #include <stdlib.h>
 #include <sys/stat.h> // For file size check
 #ifdef _WIN32
+#include <BaseTsd.h>
 #include <io.h>
+typedef SSIZE_T ssize_t;
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif

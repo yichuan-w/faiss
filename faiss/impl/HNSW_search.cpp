@@ -57,7 +57,12 @@ ssize_t read_direct_and_extract(
         return -1; // errno is set by fstat
     }
 
-    size_t block_size = stat_buf.st_blksize;
+    size_t block_size = 4096;
+#ifndef _WIN32
+    if (stat_buf.st_blksize > 0) {
+        block_size = static_cast<size_t>(stat_buf.st_blksize);
+    }
+#endif
 
     // Calculate aligned offsets
     off_t aligned_start_offset = (desired_offset / block_size) * block_size;

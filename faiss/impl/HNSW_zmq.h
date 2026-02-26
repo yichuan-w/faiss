@@ -57,7 +57,7 @@ struct ZmqDistanceComputer : DistanceComputer {
         FAISS_THROW_IF_NOT_MSG(d > 0, "Dimension must be positive");
         query.resize(d);
         reset_fetch_count(); // Initialize count
-        printf("ZmqDistanceComputer initialized: d=%zu, metric=%d\n",
+        fprintf(stderr, "ZmqDistanceComputer initialized: d=%zu, metric=%d\n",
                d,
                (int)mt);
     }

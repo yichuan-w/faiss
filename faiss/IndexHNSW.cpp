@@ -131,7 +131,7 @@ void hnsw_add_vertices(
              pt_level--) {
             int M = hnsw.nb_neighbors(pt_level);
             if (pt_level == 0) {
-                printf("M: %d for level: %d\n", M, pt_level);
+                fprintf(stderr, "M: %d for level: %d\n", M, pt_level);
                 // assign new vector to ems
                 hnsw.ems = std::vector<int>(ntotal, M);
             } else {
@@ -179,7 +179,7 @@ void hnsw_add_vertices(
                 int threshold_index =
                         std::max(0, int(sorted_degrees.size() * 0.02) - 1);
                 degree_threshold = sorted_degrees[threshold_index];
-                printf("Degree threshold: %d\n", degree_threshold);
+                fprintf(stderr, "Degree threshold: %d\n", degree_threshold);
             }
 
 #pragma omp parallel if (i1 > i0 + 100)
@@ -725,7 +725,7 @@ void IndexHNSW::reorder_links() {
 }
 
 void IndexHNSW::link_singletons() {
-    printf("search for singletons\n");
+    fprintf(stderr, "search for singletons\n");
 
     std::vector<bool> seen(ntotal);
 
@@ -750,7 +750,7 @@ void IndexHNSW::link_singletons() {
         }
     }
 
-    printf("  Found %d / %" PRId64 " singletons (%d appear in a level above)\n",
+    fprintf(stderr, "  Found %d / %" PRId64 " singletons (%d appear in a level above)\n",
            n_sing,
            ntotal,
            n_sing_l1);
@@ -1156,7 +1156,7 @@ void IndexHNSWCagra::search(
 // Save edge statistics for the HNSW graph
 void IndexHNSW::save_edge_stats(const char* filename) const {
     if (ntotal == 0) {
-        printf("No edges to save - index is empty\n");
+        fprintf(stderr, "No edges to save - index is empty\n");
         return;
     }
 
@@ -1209,16 +1209,16 @@ void IndexHNSW::save_edge_stats(const char* filename) const {
 
         // Print progress every 10000 nodes
         if (src % 10000 == 0 && src > 0) {
-            printf("Processed %d/%d nodes, %zu edges so far\r",
+            fprintf(stderr, "Processed %d/%d nodes, %zu edges so far\r",
                    (int)src,
                    (int)ntotal,
                    edge_count);
-            fflush(stdout);
+            fflush(stderr);
         }
     }
 
     fclose(f);
-    printf("\nSaved statistics for %zu edges to %s\n", edge_count, filename);
+    fprintf(stderr, "\nSaved statistics for %zu edges to %s\n", edge_count, filename);
 }
 
 void IndexHNSW::set_zmq_port(int port) {

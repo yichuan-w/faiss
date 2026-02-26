@@ -97,12 +97,12 @@ void HNSW::delete_random_level0_edges_minimal(float prune_ratio) {
 
     // --- Step 2: Shuffle and Select ---
     if (candidates.empty()) {
-        printf("No valid level 0 edges found to delete.\n");
+        fprintf(stderr, "No valid level 0 edges found to delete.\n");
         return;
     }
 
     size_t actual_num_to_delete = prune_ratio * candidates.size();
-    printf("Found %zd level 0 edges. Attempting to delete %zd.\n",
+    fprintf(stderr, "Found %zd level 0 edges. Attempting to delete %zd.\n",
            candidates.size(),
            actual_num_to_delete);
 
@@ -156,7 +156,7 @@ void HNSW::delete_random_level0_edges_minimal(float prune_ratio) {
         deleted_count++;
     }
 
-    printf("Minimal delete: %zd level 0 edges processed.\n", deleted_count);
+    fprintf(stderr, "Minimal delete: %zd level 0 edges processed.\n", deleted_count);
 }
 
 int HNSW::nb_neighbors(int layer_no) const {
@@ -275,7 +275,7 @@ void HNSW::save_degree_distribution(int level, const char* filename) const {
     }
 
     // For each node, count actual neighbors at the specified level
-    printf("Computing degree distribution for level %d\n", level);
+    fprintf(stderr, "Computing degree distribution for level %d\n", level);
 
     // Only consider nodes that exist at this level or above
     int nodes_at_level = 0;
@@ -302,19 +302,19 @@ void HNSW::save_degree_distribution(int level, const char* filename) const {
     }
 
     fclose(f);
-    printf("Saved degree distribution for %d nodes at level %d to %s\n",
+    fprintf(stderr, "Saved degree distribution for %d nodes at level %d to %s\n",
            nodes_at_level,
            level,
            filename);
 
     // Print command to generate the plot
-    printf("To visualize the distribution, run:\n");
-    printf("python -m faiss.contrib.plot_degree_distribution %s\n", filename);
+    fprintf(stderr, "To visualize the distribution, run:\n");
+    fprintf(stderr, "python -m faiss.contrib.plot_degree_distribution %s\n", filename);
 }
 
 void HNSW::print_neighbor_stats(int level) const {
     FAISS_THROW_IF_NOT(level < cum_nneighbor_per_level.size());
-    printf("stats on level %d, max %d neighbors per vertex:\n",
+    fprintf(stderr, "stats on level %d, max %d neighbors per vertex:\n",
            level,
            nb_neighbors(level));
     size_t tot_neigh = 0, tot_common = 0, tot_reciprocal = 0, n_node = 0;
@@ -361,13 +361,13 @@ void HNSW::print_neighbor_stats(int level) const {
         }
     }
     float normalizer = n_node;
-    printf("   nb of nodes at that level %zd\n", n_node);
-    printf("   neighbors per node: %.2f (%zd)\n",
+    fprintf(stderr, "   nb of nodes at that level %zd\n", n_node);
+    fprintf(stderr, "   neighbors per node: %.2f (%zd)\n",
            tot_neigh / normalizer,
            tot_neigh);
-    printf("   nb of reciprocal neighbors: %.2f\n",
+    fprintf(stderr, "   nb of reciprocal neighbors: %.2f\n",
            tot_reciprocal / normalizer);
-    printf("   nb of neighbors that are also neighbor-of-neighbors: %.2f (%zd)\n",
+    fprintf(stderr, "   nb of neighbors that are also neighbor-of-neighbors: %.2f (%zd)\n",
            tot_common / normalizer,
            tot_common);
 }
@@ -383,7 +383,7 @@ void HNSW::fill_with_random_links(size_t n) {
                 elts.push_back(i);
             }
         }
-        printf("linking %zd elements in level %d\n", elts.size(), level);
+        fprintf(stderr, "linking %zd elements in level %d\n", elts.size(), level);
 
         if (elts.size() == 1)
             continue;
@@ -667,7 +667,7 @@ void add_link_pruned(
     // strict_end - begin);
     int len = strict_end - begin;
     len = std::min(len, hnsw.ems[src]);
-    printf("len: %d, ems[src]: %d\n", len, hnsw.ems[src]);
+    fprintf(stderr, "len: %d, ems[src]: %d\n", len, hnsw.ems[src]);
     // assert (len != 64);
     // assert (len==8);
     shrink_neighbor_list(qdis, resultSet, len, keep_max_size_level0);
@@ -917,7 +917,7 @@ void HNSW::add_links_starting_from(
             neighbors_to_add.push_back(other_id);
             pass_first_node = true;
             link_targets.pop();
-            printf("add_link_pruned src, dst, distance: %d, %d, %f\n", pt_id, other_id, distance);
+            fprintf(stderr, "add_link_pruned src, dst, distance: %d, %d, %f\n", pt_id, other_id, distance);
             break;
         }
 

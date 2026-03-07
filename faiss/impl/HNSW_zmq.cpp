@@ -30,7 +30,31 @@
 #include <fcntl.h>
 #include <msgpack.hpp>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <BaseTsd.h>
+#include <io.h>
+typedef SSIZE_T ssize_t;
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+#ifndef O_DIRECT
+#define O_DIRECT 0
+#endif
+static inline ssize_t win_pread(int fd, void* buf, size_t count, off_t offset) {
+    const __int64 cur = _lseeki64(fd, 0, SEEK_CUR);
+    if (cur < 0 || _lseeki64(fd, offset, SEEK_SET) < 0) {
+        return -1;
+    }
+    const int n = _read(fd, reinterpret_cast<char*>(buf), static_cast<unsigned int>(count));
+    const int saved_errno = errno;
+    (void)_lseeki64(fd, cur, SEEK_SET);
+    errno = saved_errno;
+    return n < 0 ? -1 : static_cast<ssize_t>(n);
+}
+#define pread win_pread
+#else
 #include <unistd.h>
+#endif
 #include <zmq.h>
 #include <algorithm>
 #include <atomic>
@@ -93,7 +117,11 @@ void setup_experimental_top_degree_disk_read(
     struct stat file_stat;
     int block_size = 4096;
     if (stat(storage_path.c_str(), &file_stat) == 0) {
+#ifdef _WIN32
+        block_size = 4096;
+#else
         block_size = (file_stat.st_blksize > 0) ? file_stat.st_blksize : 4096;
+#endif
     } else {
         // Fail fast on stat error as block size is critical for O_DIRECT
         FAISS_THROW_FMT(
